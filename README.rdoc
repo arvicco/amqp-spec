@@ -2,26 +2,84 @@
 by:: Arvicco
 url:: http://github.com/arvicco/amqp-spec
 
-== DESCRIPTION:
+== Summary
 
-FIXME (describe your package)
+Simple API for testing asynchronous AMQP code.
 
-== FEATURES/PROBLEMS:
+== Description
 
-* FIXME (list of features or problems)
+EventMachine-based code, including synchronous {AMQP library}[http://github.com/tmm1/amqp] is
+notoriously difficult to test. To the point that many people recommend using either
+Mocks[http://github.com/danielsdeleo/moqueue] or {synchronous libraries}[http://github.com/celldee/bunny]
+instead of EM-based libraries in unit tests. This is not always an option, however - sometimes your code
+is supposed to run inside event loop, and you want to test a real thing, not mocks.
 
-== SYNOPSIS:
+EM-Spec[http://github.com/tmm1/em-spec] gem made it easier to write AMQP specs, but it has several drawbacks.
+First, it is not easy to manage both EM.run and AMQP.start loops at the same time. Second, AMQP is not
+properly stopped and deactivated upon exceptions and timeouts, resulting in AMQP library state leak
+between examples and resulting in multiple mistereous failures.
 
-  FIXME (code sample of usage)
+AMQP-Spec is built upon EM-Spec code but makes it easier to test AMQP event loops specifically. API is
+very similar to EM-Spec, only a bit extended.
 
-== REQUIREMENTS:
+Mind you, you still have to properly manage your AMQP broker in order to prevent broker state from leaking
+between examples. You can try to combine AMQP-Spec and Moqueue[http://github.com/danielsdeleo/moqueue]
+if you want to abstract away actual broker interactions, but still specify some event-based expectations.
 
-* FIXME (list of requirements)
+AMQP-Spec can be currently used with rspec only. I suppose, there is nothing special in extending EM-Spec's
+test unit and bacon support, I just do not have experience dealing with these platforms. Any help is appreciated.
 
-== INSTALL:
+==Rspec
+There are two ways to use the Rspec extension.  To use it as a helper, include AMQP::SpecHelper in your describe block.
+You then use the 'amqp' method to wrap your evented test code. Inside the amqp block, you must call #done after
+your expectations. Everything works normally otherwise.
 
-  $ sudo gem install amqp-spec
-* FIXME anything else?
+  require "amqp-spec/rspec"
+  describe AMQP do
+    include AMQP::SpecHelper
+  
+    it "works normally when not using #amqp" do
+      1.should == 1
+    end
+  
+    it "makes testing evented code easy with #amqp" do
+      amqp do
+        start = Time.now
 
-== LICENSE:
-Copyright (c) 2010 Arvicco. See LICENSE for details.
+        EM.add_timer(0.5){
+          (Time.now-start).should be_close( 0.5, 0.1 )
+          done
+        }
+      end
+    end
+  end
+
+The other option is to include AMQP::Spec in your describe block. This will patch Rspec so that all of your
+examples run inside an amqp block automatically:
+
+  require "amqp-spec/rspec"
+  describe AMQP do
+    include AMQP::Spec
+    
+    it "requires a call to #done in every example" do
+      1.should == 1
+      done
+    end
+    
+    it "runs test code in an amqp block automatically" do
+      start = Time.now
+
+      EM.add_timer(0.5){
+        (Time.now-start).should be_close( 0.5, 0.1 )
+        done
+      }
+    end
+  end
+
+==Bacon
+
+...
+
+==Test::Unit
+
+...

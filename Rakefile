@@ -8,7 +8,7 @@ DOC_PATH =  BASE_PATH + 'rdoc'
 $LOAD_PATH.unshift LIB_PATH.to_s
 require 'version'
 
-CLASS_NAME = AmqpSpec
+CLASS_NAME = AMQP::Spec
 VERSION = CLASS_NAME::VERSION
 
 begin

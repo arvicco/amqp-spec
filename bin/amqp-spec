@@ -1,7 +1,0 @@
-#!/usr/bin/env ruby
-
-require 'pathname'
-require Pathname.new(__FILE__).dirname + '../lib/amqp-spec'
-
-# Put your code here
-
