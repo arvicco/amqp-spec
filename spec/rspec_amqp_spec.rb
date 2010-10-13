@@ -81,15 +81,6 @@ context 'Evented specs' do
     end
   end
 
-##  describe AMQP, " when testing with AMQP::SpecHelper with spec timeouts" do
-##    include AMQP::Spec
-##
-##    default_timeout 1
-##
-##    it 'should time out due to default timeout' do
-##    end
-##  end
-#
   describe AMQP, " when testing with AMQP::SpecHelper with spec timeouts" do
     include AMQP::SpecHelper
     before(:each) { @start = Time.now }
@@ -177,7 +168,35 @@ context 'Evented specs' do
 #  end
 end
 
+context '!!!!!!!!!!! LEAKING !!!!!!!!!!!!!!!!!!' do
+  describe EventMachine, " when running failing examples" do
+    include AMQP::Spec
 
+    it "should not bubble failures beyond rspec" do
+      EM.add_timer(0.1) do
+        :should_not_bubble.should == :failures
+        done
+      end
+    end
+
+    it "should not block on failure" do
+      1.should == 2
+    end
+  end
+
+  describe EventMachine, " when testing with AMQP::Spec with a maximum execution time per test" do
+
+    include AMQP::Spec
+
+    default_timeout 1
+
+    it 'should timeout before reaching done' do
+      EM.add_timer(2) {
+        done
+      }
+    end
+  end
+end
 describe "Rspec", " when running an example group after another group that uses AMQP-Spec " do
   it "should work normally" do
     :does_not_hang.should_not be_false

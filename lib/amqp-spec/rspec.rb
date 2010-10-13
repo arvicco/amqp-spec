@@ -89,7 +89,7 @@ module AMQP
       EM.run do
         @_em_spec_with_amqp = false
         @_em_spec_exception = nil
-        timeout(time_to_run) if time_to_run
+        timeout(spec_timeout) if spec_timeout
         @_em_spec_fiber = Fiber.new do
           begin
             block.call
@@ -106,9 +106,9 @@ module AMQP
     end
 
     # Sets timeout for current spec
-    def timeout(time_to_run)
+    def timeout(spec_timeout)
       EM.cancel_timer(@_em_timer) if @_em_timer
-      @_em_timer = EM.add_timer(time_to_run) do
+      @_em_timer = EM.add_timer(spec_timeout) do
         @_em_spec_exception = SpecTimeoutExceededError.new
         done
       end
@@ -119,7 +119,7 @@ module AMQP
       EM.next_tick do
         if @_em_spec_with_amqp
           amqp_stop(@_em_spec_exception) do
-            finish_amqp_spec_fiber
+            finish_em_spec_fiber
           end
         else
           finish_em_spec_fiber
@@ -129,7 +129,7 @@ module AMQP
 
     private
 
-    def finish_amqp_spec_fiber
+    def finish_em_spec_fiber
       EM.stop_event_loop if EM.reactor_running?
 #      p Thread.current, Thread.current[:mq], __LINE__
       @_em_spec_fiber.resume if @_em_spec_fiber.alive?
