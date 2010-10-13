@@ -1,5 +1,5 @@
 require 'mq'
-require File.dirname(__FILE__) + '/../ext/fiber18'
+require 'fiber' unless Fiber.respond_to?(:current)
 
 # You can include one of the following modules into your example groups:
 # AMQP::SpecHelper
@@ -20,24 +20,35 @@ require File.dirname(__FILE__) + '/../ext/fiber18'
 # probably called at the end of this block.
 #
 # TODO: Define 'async' method wrapping async requests and returning results... 'async_loop' too for subscribe?
+# TODO: 'evented_before', 'evented_after' that will be run inside EM before the example
 module AMQP
   module SpecHelper
 
     SpecTimeoutExceededError = Class.new(RuntimeError)
 
     def self.included(cls)
-      ::Spec::Example::ExampleGroup.instance_eval "
-      @@_em_default_spec_timeout = nil
-      def self.default_spec_timeout(time_to_run)
-        @@_em_default_spec_timeout = time_to_run
-      end
-      alias default_timeout default_spec_timeout
-      "
-    end
+      cls.instance_exec do
+        @_em_default_options = {}
+        @_em_default_timeout = nil
 
-    def timeout(time_to_run)
-      EM.cancel_timer(@_em_timer) if @_em_timer
-      @_em_timer = EM.add_timer(time_to_run) { done; raise SpecTimeoutExceededError.new }
+        def self.default_spec_timeout(spec_timeout=nil)
+          if spec_timeout
+            @_em_default_timeout = spec_timeout
+          else
+            @_em_default_timeout
+          end
+        end
+
+        alias default_timeout default_spec_timeout
+
+        def self.default_options(opts=nil)
+          if opts
+            @_em_default_options = opts
+          else
+            @_em_default_options
+          end
+        end
+      end
     end
 
     # Yields to given block inside EM.run and AMQP.start loops. This method takes any option that is
@@ -51,35 +62,38 @@ module AMQP
     # In addition to EM and AMQP options, :spec_timeout option (in seconds) is used to force spec to timeout
     # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
 
-    def amqp opts={}, &blk
+    def amqp opts={}, &block
+      opts = self.class.default_options.merge opts
       EM.run do
-        begin
-          spec_timeout = opts.delete(:spec_timeout) || @@_em_default_spec_timeout
-          timeout(spec_timeout) if spec_timeout
-          AMQP.instance_eval do
-            puts "Existing connection: #{@conn}"
-            @conn = connect opts
-#            @conn ||= connect opts
-            @conn.callback(&blk) if blk
-            @conn
+#        begin ?
+        @_em_spec_with_amqp = true
+        @_em_spec_exception = nil
+        spec_timeout = opts.delete(:spec_timeout) || self.class.default_timeout
+        timeout(spec_timeout) if spec_timeout
+        @_em_spec_fiber = Fiber.new do
+          begin
+            amqp_start opts, &block
+          rescue Exception => @_em_spec_exception
+            p @_em_spec_exception
+            done
           end
-#          p "Timer:#{@_em_timer.inspect}"
-        rescue Exception => em_spec_exception
-          p em_spec_exception
-          done
-          raise em_spec_exception
+          Fiber.yield
         end
+
+        @_em_spec_fiber.resume
+#        raise @_em_spec_exception if @_em_spec_exception
       end
     end
 
-    def em(time_to_run = @@_em_default_spec_timeout, &block)
+    def em(spec_timeout = self.class.default_timeout, &block)
       EM.run do
+        @_em_spec_with_amqp = false
+        @_em_spec_exception = nil
         timeout(time_to_run) if time_to_run
-        em_spec_exception = nil
         @_em_spec_fiber = Fiber.new do
           begin
             block.call
-          rescue Exception => em_spec_exception
+          rescue Exception => @_em_spec_exception
             done
           end
           Fiber.yield
@@ -87,37 +101,92 @@ module AMQP
 
         @_em_spec_fiber.resume
 
-        raise em_spec_exception if em_spec_exception
+        raise @_em_spec_exception if @_em_spec_exception
       end
     end
 
+    # Sets timeout for current spec
+    def timeout(time_to_run)
+      EM.cancel_timer(@_em_timer) if @_em_timer
+      @_em_timer = EM.add_timer(time_to_run) do
+        @_em_spec_exception = SpecTimeoutExceededError.new
+        done
+      end
+    end
+
+    # Stops AMQP and EM event loop
     def done
-      EM.next_tick{
-        finish_em_spec_fiber
-      }
+      EM.next_tick do
+        if @_em_spec_with_amqp
+          amqp_stop(@_em_spec_exception) do
+            finish_amqp_spec_fiber
+          end
+        else
+          finish_em_spec_fiber
+        end
+      end
     end
 
     private
 
-    def finish_em_spec_fiber
+    def finish_amqp_spec_fiber
       EM.stop_event_loop if EM.reactor_running?
+#      p Thread.current, Thread.current[:mq], __LINE__
       @_em_spec_fiber.resume if @_em_spec_fiber.alive?
     end
 
+    # Private method that initializes AMQP client/connection without starting another EM loop
+    def amqp_start opts={}, &block
+      AMQP.instance_exec do
+#  p Thread.current, Thread.current[:mq]
+        puts "Existing connection: #{@conn}" if @conn
+        @conn = connect opts
+#       @conn ||= connect opts
+        @conn.callback(&block) if block
+        @conn
+      end
+    end
+
+    # Private method that closes AMQP connection and raises optional
+    # exception AFTER the AMQP connection is 100% closed
+    def amqp_stop exception
+      if AMQP.conn and not AMQP.closing
+        AMQP.instance_exec do #(@_em_spec_exception) do |exception|
+          @closing = true
+          @conn.close {
+            yield if block_given?
+            @conn = nil
+            @closing = false
+            raise exception if exception
+          }
+        end
+      end
+    end
   end
 
   module Spec
+    def self.included(cls)
+      cls.send(:include, SpecHelper)
+    end
 
-    include SpecHelper
+    def instance_eval(&block)
+      amqp do
+        super(&block)
+      end
+    end
+  end
+
+  module EMSpec
+    def self.included(cls)
+      cls.send(:include, SpecHelper)
+    end
 
     def instance_eval(&block)
       em do
         super(&block)
       end
     end
-
   end
-
 end
 
 

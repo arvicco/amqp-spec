@@ -1,6 +1,6 @@
 = amqp-spec
-by:: Arvicco
-url:: http://github.com/arvicco/amqp-spec
+by: Arvicco
+url: http://github.com/arvicco/amqp-spec
 
 == Summary
 
@@ -17,17 +17,22 @@ is supposed to run inside event loop, and you want to test a real thing, not moc
 EM-Spec[http://github.com/tmm1/em-spec] gem made it easier to write AMQP specs, but it has several drawbacks.
 First, it is not easy to manage both EM.run and AMQP.start loops at the same time. Second, AMQP is not
 properly stopped and deactivated upon exceptions and timeouts, resulting in AMQP library state leak
-between examples and resulting in multiple mistereous failures.
+between examples and multiple mystereous failures.
 
 AMQP-Spec is built upon EM-Spec code but makes it easier to test AMQP event loops specifically. API is
-very similar to EM-Spec, only a bit extended.
+very similar to EM-Spec, only a bit extended. The final goal is to make writing AMQP specs reasonably
+pleasant experience and dispel the notion that evented AMQP-based libs are impossible to unit-test.
 
 Mind you, you still have to properly manage your AMQP broker in order to prevent broker state from leaking
 between examples. You can try to combine AMQP-Spec and Moqueue[http://github.com/danielsdeleo/moqueue]
 if you want to abstract away actual broker interactions, but still specify some event-based expectations.
 
 AMQP-Spec can be currently used with rspec only. I suppose, there is nothing special in extending EM-Spec's
-test unit and bacon support, I just do not have experience dealing with these platforms. Any help is appreciated.
+test unit and bacon support, I just do not have experience dealing with these platforms. Another limitation,
+it uses native Fibers and therefore not compatible with Ruby 1.8. Again, it seems possible to rewrite it in
+1.8-compatible style, with string evals and Fiber backport, but I'd rather leave this work to someone else.
+
+Any help improving this library is greatly appreciated, as I'm not.
 
 ==Rspec
 There are two ways to use the Rspec extension.  To use it as a helper, include AMQP::SpecHelper in your describe block.
@@ -38,6 +43,10 @@ your expectations. Everything works normally otherwise.
   describe AMQP do
     include AMQP::SpecHelper
   
+    before(:each) do
+      puts EM.reactor_running?
+    end
+
     it "works normally when not using #amqp" do
       1.should == 1
     end
@@ -52,15 +61,43 @@ your expectations. Everything works normally otherwise.
         }
       end
     end
+
+    it "runs AMQP.start loop with options given to #amqp" do
+      amqp(:host => 'my.amqp.broker.org', :port => '21118')do
+        AMQP.conn.should be_connected
+        done
+      end
+    end
+
+    it "optionally raises timeout exception if your loop hangs for some reason" do
+      proc {
+        amqp(:spec_timeout => 3){}
+      }.should raise_error SpecTimeoutExceededError
+    end
+
+    default_timeout 10 # Can be used to set default :spec_timeout for all your amqp-based specs
   end
 
 The other option is to include AMQP::Spec in your describe block. This will patch Rspec so that all of your
-examples run inside an amqp block automatically:
+examples run inside an amqp block automatically. A word of caution about before{} and after{} hooks in your example
+groups including AMQP::Spec. Each of these hooks will run in its separate EM loop that you'll need to shut down
+either manually (done) or via default_timeout. Essentially, this means that any EM-related state that you'd like
+to setup/teardown using these hooks will be lost as each example will run in a separate thread. In order to
+run setup/teardown hooks inside the EM loop, you'll need to use before_amqp{} and after_amqp{} hooks that run
+inside the EM loop but before/after AMQP loop (these hooks are currently not implemented)
 
   require "amqp-spec/rspec"
   describe AMQP do
     include AMQP::Spec
-    
+
+    before(:each) do
+      puts EM.reactor_running?
+      done
+    end
+
+    default_options :host => 'my.amqp.broker.org', :port => '21118'
+    # Can be used to set default options for all your (implied) amqp{} event loops
+
     it "requires a call to #done in every example" do
       1.should == 1
       done
@@ -73,6 +110,15 @@ examples run inside an amqp block automatically:
         (Time.now-start).should be_close( 0.5, 0.1 )
         done
       }
+    end
+
+    it "runs AMQP.start loop with default_options" do
+      AMQP.conn.should be_connected
+      done
+    end
+
+    it "raises timeout exception ONLY if default_timeout was set" do
+      proc{}.should raise_error SpecTimeoutExceededError
     end
   end
 
