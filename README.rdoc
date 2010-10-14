@@ -32,8 +32,8 @@ There are several ways to use amqp-spec. To use it as a helper, include AMQP::Sp
 You then use either 'amqp' or 'em' methods to wrap your evented test code. Inside the amqp/em block, you must call
 #done after your expectations. Everything works normally otherwise. You can use default_timeout and default_options
 macros to avoid manually setting AMQP options in each example. However, if you DO manually set options inside
-the example, they override the defaults. Only one set of default options per example group is used, different
-example groups have different defaults (this is different compared to EM-Spec, where default timeout is global).
+the example, they override the defaults. Only one set of default options and default timeout is used across groups,
+it is not possible to have separate defaults for separate groups.
 
   require "amqp-spec/rspec"
   describe AMQP do
@@ -48,7 +48,7 @@ example groups have different defaults (this is different compared to EM-Spec, w
     end
   
     it "makes testing evented code easy with #em" do
-      amqp do
+      em do
         start = Time.now
 
         EM.add_timer(0.5){

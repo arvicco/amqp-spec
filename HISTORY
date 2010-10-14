@@ -13,3 +13,7 @@
 == 0.0.3 / 2010-10-13
 
 * Bunch of non-working specs added
+
+== 0.0.4 / 2010-10-14
+
+* Problems with default_options resolved

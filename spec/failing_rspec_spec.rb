@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/../lib/amqp-spec/rspec'
+require_relative 'spec_helper.rb'
 
 context 'Following examples should all be failing:' do
   describe EventMachine, " when running failing examples" do
@@ -16,12 +16,9 @@ context 'Following examples should all be failing:' do
     end
   end
 
-  describe EventMachine, " !!!!!!!!!!!!!!!!!!!!!!!!!! when testing with AMQP::EMSpec with a maximum execution time per test" do
+  describe EventMachine, " when testing with AMQP::EMSpec with a maximum execution time per test" do
 
     include AMQP::EMSpec
-
-    default_timeout 1
-
     it 'should timeout before reaching done' do
       EM.add_timer(2) {
         done
@@ -29,8 +26,8 @@ context 'Following examples should all be failing:' do
     end
 
     it 'should timeout before reaching done' do
-      timeout(0.2)
-      EM.add_timer(0.5) {
+      timeout(0.3)
+      EM.add_timer(0.6) {
         done
       }
     end
@@ -54,12 +51,10 @@ context 'Following examples should all be failing:' do
         done
       }
     end
-  end
 
-  describe AMQP, " when testing with AMQP::SpecHelper with spec timeouts" do
-    include AMQP::Spec
-
-    default_timeout 0.5
+    it 'should fail due to timeout, not hang up' do
+      timeout(0.2)
+    end
 
     it 'should fail due to default timeout, not hang up' do
     end
