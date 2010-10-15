@@ -32,13 +32,19 @@ There are several ways to use amqp-spec. To use it as a helper, include AMQP::Sp
 You then use either 'amqp' or 'em' methods to wrap your evented test code. Inside the amqp/em block, you must call
 #done after your expectations. Everything works normally otherwise. You can use default_timeout and default_options
 macros to avoid manually setting AMQP options in each example. However, if you DO manually set options inside
-the example, they override the defaults. Only one set of default options and default timeout is used across groups,
-it is not possible to have separate defaults for separate groups.
+the example, they override the defaults. Only default options and default timeout are global across groups,
+it is currently impossible to have separate defaults for separate groups.
 
   require "amqp-spec/rspec"
   describe AMQP do
     include AMQP::SpecHelper
   
+    default_options :host => 'my.amqp.broker.org', :port => '21118'
+    # Can be used to set default options for all your amqp{} event loops
+
+    default_timeout 1
+    # Can be used to set default :spec_timeout for all your amqp-based specs
+
     before(:each) do
       puts EM.reactor_running?
     end
@@ -71,7 +77,6 @@ it is not possible to have separate defaults for separate groups.
       }.should raise_error SpecTimeoutExceededError
     end
 
-    default_timeout 1 # Can be used to set default :spec_timeout for all your amqp-based specs
   end
 
 Another option is to include AMQP::Spec in your describe block. This will patch Rspec so that all of your
@@ -90,9 +95,6 @@ inside the EM loop but before/after AMQP loop (these hooks are currently not imp
       puts EM.reactor_running?
       done
     end
-
-    default_options :host => 'my.amqp.broker.org', :port => '21118'
-    # Can be used to set default options for all your (implied) amqp{} event loops
 
     it "requires a call to #done in every example" do
       1.should == 1
@@ -139,9 +141,6 @@ when including AMQP::Spec, and same caution about using them applies.
         done
       }
     end
-
-    default_timeout 1
-    # Default spec timeouts can be used same as with AMQP::Spec, default_options (if defined) are not used
   end
 
 
