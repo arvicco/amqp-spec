@@ -37,3 +37,7 @@
 == 0.1.4 / 2010-10-15
 
 * Problematic tests fixed
+
+== 0.1.5 / 2010-10-15
+
+* Clean up debugging output

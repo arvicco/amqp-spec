@@ -19,13 +19,13 @@ require 'mq'
 # For example, if you are using subscribe block that tests expectations on messages, 'done' should be
 # probably called at the end of this block.
 #
-# TODO: Define 'async' method wrapping async requests and returning results... 'async_loop' too for subscribe?
+# TODO: Define 'async' method wrapping async requests and returning results... 'async_loop' too for subscribe block?
 # TODO: 'evented_before', 'evented_after' that will be run inside EM before the example
 module AMQP
 
   # Initializes new AMQP client/connection without starting another EM loop
   def self.start_connection opts={}, &block
-    puts "!!!!!!!!! Existing connection: #{@conn}" if @conn
+#    puts "!!!!!!!!! Existing connection: #{@conn}" if @conn
     @conn = connect opts
     @conn.callback(&block) if block
   end
@@ -48,7 +48,6 @@ module AMQP
     Thread.current[:mq_id] = nil
     @conn = nil
     @closing = false
-    p "!!!!!!!!!! Thread.current[:mq] is still #{Thread.current[:mq].inspect} after cleanup" if Thread.current[:mq]
   end
 
   module SpecHelper
@@ -107,7 +106,7 @@ module AMQP
             begin
               AMQP.start_connection opts, &block
             rescue Exception => @_em_spec_exception
-              p "inner", @_em_spec_exception
+#              p "inner", @_em_spec_exception
               done
             end
             Fiber.yield
@@ -116,7 +115,7 @@ module AMQP
           @_em_spec_fiber.resume
         end
       rescue Exception => outer_spec_exception
-        p "outer", outer_spec_exception unless outer_spec_exception.is_a? SpecTimeoutExceededError
+#        p "outer", outer_spec_exception unless outer_spec_exception.is_a? SpecTimeoutExceededError
         # Makes sure AMQP state is cleaned even after Rspec failures
         AMQP.cleanup_state
         raise outer_spec_exception
@@ -205,5 +204,3 @@ module AMQP
     end
   end
 end
-
-
