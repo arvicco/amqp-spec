@@ -45,3 +45,7 @@
 == 0.1.6 / 2010-10-15
 
 * README tweaked
+
+== 0.1.7 / 2010-10-15
+
+* em interface improved for timeout arg

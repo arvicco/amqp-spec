@@ -124,8 +124,8 @@ module AMQP
 
     # Yields to block inside EM loop, :spec_timeout option (in seconds) is used to force spec to timeout
     # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
-    # TODO: accept :spec_timeout =>1 as a Hash for compatibility with amqp interface
     def em(spec_timeout = @@_em_default_timeout, &block)
+      spec_timeout = spec_timeout[:spec_timeout] || @@_em_default_timeout if spec_timeout.is_a?(Hash)
       EM.run do
         @_em_spec_with_amqp = false
         @_em_spec_exception = nil

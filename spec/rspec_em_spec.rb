@@ -18,6 +18,32 @@ context 'Plain EM, no AMQP' do
         }
       end
     end
+
+    it "should be possible to set spec timeouts as a number of secounds" do
+      start = Time.now
+      proc {
+        em(0.5) do
+
+          EM.add_timer(1) {
+            done
+          }
+        end
+      }.should raise_error SpecTimeoutExceededError
+      (Time.now-start).should be_close(0.5, 0.1)
+    end
+
+    it "should be possible to set spec timeout as an option (amqp interface compatibility)" do
+      start = Time.now
+      proc {
+        em(0.5) do
+
+          EM.add_timer(1) {
+            done
+          }
+        end
+      }.should raise_error SpecTimeoutExceededError
+      (Time.now-start).should be_close(0.5, 0.1)
+    end
   end
 
   describe EventMachine, " when testing with AMQP::Spec" do

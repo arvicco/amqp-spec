@@ -3,9 +3,6 @@ require 'version'
 module AMQP
   module Spec
 
-#  require "bundler"
-#  Bundler.setup
-
     # Requires ruby source file(s). Accepts either single filename/glob or Array of filenames/globs.
     # Accepts following options:
     # :*file*:: Lib(s) required relative to this file - defaults to __FILE__
