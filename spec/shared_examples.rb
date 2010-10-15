@@ -50,7 +50,7 @@ shared_examples_for 'SpecHelper examples' do
     AMQP.conn.should be_nil
   end
 
-  it "should gracefully exit if no AMQP connection is made" do
+  it "should gracefully exit if no AMQP connection was made" do
     proc {
       amqp(:host => 'Impossible') do
         AMQP.conn.should be_nil
