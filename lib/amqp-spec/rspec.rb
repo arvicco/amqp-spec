@@ -27,29 +27,28 @@ module AMQP
   def self.start_connection opts={}, &block
     puts "!!!!!!!!! Existing connection: #{@conn}" if @conn
     @conn = connect opts
-#       @conn ||= connect opts
     @conn.callback(&block) if block
   end
 
   # Closes AMQP connection and raises optional exception AFTER the AMQP connection is 100% closed
-  def self.stop_connection exception=nil
+  def self.stop_connection
     if AMQP.conn and not AMQP.closing
+#   MQ.reset ?
       @closing = true
-#         MQ.reset ?
       @conn.close {
         yield if block_given?
-        cleanup_state exception
+        cleanup_state
       }
     end
   end
 
-  def self.cleanup_state exception=nil
+  def self.cleanup_state
+#   MQ.reset ?
     Thread.current[:mq] = nil
     Thread.current[:mq_id] = nil
     @conn = nil
     @closing = false
-    p "Finished AMQP cleanup! Thread.current[:mq] #{Thread.current[:mq].inspect}" if Thread.current[:mq]
-    raise exception if exception
+    p "!!!!!!!!!! Thread.current[:mq] is still #{Thread.current[:mq].inspect} after cleanup" if Thread.current[:mq]
   end
 
   module SpecHelper
