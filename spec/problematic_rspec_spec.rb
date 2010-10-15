@@ -14,7 +14,7 @@ context '!!!!!!!!!!! LEAKING !!!!!!!!!!!!!!!!!!' do
           p hdr, data
           EM.next_tick {
             q.unsubscribe; q.delete
-            AMQP.stop { EM.stop_event_loop }
+            done
           }
         end
         EM.add_timer(0.2) do
@@ -31,7 +31,7 @@ context '!!!!!!!!!!! LEAKING !!!!!!!!!!!!!!!!!!' do
           p hdr, data
           EM.next_tick {
             q.unsubscribe; q.delete
-            AMQP.stop { EM.stop_event_loop }
+            done
           }
         end
         EM.add_timer(0.2) do
