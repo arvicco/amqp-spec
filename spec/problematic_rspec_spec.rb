@@ -2,48 +2,10 @@ require_relative 'spec_helper.rb'
 
 # PROBLEMATIC !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 context '!!!!!!!!!!! LEAKING !!!!!!!!!!!!!!!!!!' do
-  describe MQ, " when MQ.queue or MQ.fanout etc is trying to access Thread-local mq across examples" do
+  describe EventMachine, " when running failing examples" do
     include AMQP::SpecHelper
 
     default_timeout 1
-
-    it 'sends data to queue' do
-      amqp do
-        q = MQ.new.queue("test_sink")
-        q.subscribe do |hdr, data|
-          p hdr, data
-          EM.next_tick {
-            q.unsubscribe; q.delete
-            done
-          }
-        end
-        EM.add_timer(0.2) do
-          p Thread.current, Thread.current[:mq]
-          MQ.queue('test_sink').publish 'data' # MQ.new. !!!!!!!!!!!
-        end
-      end
-    end
-
-    it 'sends data to queue' do
-      amqp do
-        q = MQ.new.queue("test_sink")
-        q.subscribe do |hdr, data|
-          p hdr, data
-          EM.next_tick {
-            q.unsubscribe; q.delete
-            done
-          }
-        end
-        EM.add_timer(0.2) do
-          p Thread.current, Thread.current[:mq]
-          MQ.queue('test_sink').publish 'data' # MQ.new. !!!!!!!!!!!
-        end
-      end
-    end
-  end
-
-  describe EventMachine, " when running failing examples" do
-    include AMQP::SpecHelper
 
     it "should not bubble failures beyond rspec" do
       amqp do

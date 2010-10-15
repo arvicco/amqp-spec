@@ -29,3 +29,7 @@
 == 0.1.2 / 2010-10-15
 
 * Cleanup in AMQP.cleanup
+
+== 0.1.3 / 2010-10-15
+
+* Make sure Thread.current[:mq] state is cleaned after each example

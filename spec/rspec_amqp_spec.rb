@@ -6,6 +6,23 @@ describe 'Rspec' do
   end
 end
 
+def publish_and_consume_once(queue_name="test_sink", data="data")
+  amqp do
+    q = MQ.queue(queue_name)
+    q.subscribe do |hdr, msg|
+      hdr.should be_an MQ::Header
+      msg.should == data
+      EM.next_tick {
+        q.unsubscribe; q.delete
+        done
+      }
+    end
+    EM.add_timer(0.2) do
+      MQ.queue(queue_name).publish data
+    end
+  end
+end
+
 context 'Evented AMQP specs' do
   describe AMQP, " when testing with AMQP::SpecHelper" do
     include AMQP::SpecHelper
@@ -61,6 +78,21 @@ context 'Evented AMQP specs' do
     end
   end
 
+  describe 'MQ', " when MQ.queue/fanout/topic tries to access Thread.current[:mq] across examples" do
+    include AMQP::SpecHelper
+
+    it 'sends data to queue' do
+      publish_and_consume_once
+    end
+
+    it 'sends data to queue, again' do
+      publish_and_consume_once
+    end
+
+    it 'cleans Thread.current[:mq] after pubsub examples' do
+      Thread.current[:mq].should be_nil
+    end
+  end
 end
 
 describe "Rspec", " when running an example group after another group that uses AMQP-Spec " do
