@@ -41,3 +41,7 @@
 == 0.1.8 / 2010-10-15
 
 * Add AMQP as a dependency
+
+== 0.1.9 / 2010-10-15
+
+* SpecHelper class methods refactored

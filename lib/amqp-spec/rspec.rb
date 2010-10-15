@@ -62,21 +62,15 @@ module AMQP
           @@_em_default_timeout = nil
 
           def self.default_spec_timeout(spec_timeout=nil)
-            if spec_timeout
-              @@_em_default_timeout = spec_timeout
-            else
-              @@_em_default_timeout
-            end
+            @@_em_default_timeout = spec_timeout if spec_timeout
+            @@_em_default_timeout
           end
 
           alias default_timeout default_spec_timeout
 
           def self.default_options(opts=nil)
-            if opts
-              @@_em_default_options = opts
-            else
-              @@_em_default_options
-            end
+            @@_em_default_options = opts if opts
+            @@_em_default_options
           end
         end
       end
