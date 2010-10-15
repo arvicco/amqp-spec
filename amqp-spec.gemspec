@@ -34,4 +34,3 @@ Gem::Specification.new do |gem|
 
   gem.rubygems_version  = `gem -v`
 end
-

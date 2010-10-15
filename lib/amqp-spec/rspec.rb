@@ -86,7 +86,7 @@ module AMQP
     #
     # In addition to EM and AMQP options, :spec_timeout option (in seconds) is used to force spec to timeout
     # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
-
+    #
     def amqp opts={}, &block
       opts = @@_em_default_options.merge opts
       begin
