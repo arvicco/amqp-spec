@@ -83,7 +83,7 @@ Another option is to include AMQP::Spec in your describe block. This will patch 
 examples run inside an amqp block automatically. A word of caution about before{} and after{} hooks in your example
 groups including AMQP::Spec. Each of these hooks will run in its separate EM loop that you'll need to shut down
 either manually (done) or via default_timeout. Essentially, this means that any EM-related state that you'd like
-to setup/teardown using these hooks will be lost as each example will run in a separate thread. In order to
+to setup/teardown using these hooks will be lost as each example will run in a separate EM loop. In order to
 run setup/teardown hooks inside the EM loop, you'll need to use before_amqp{} and after_amqp{} hooks that run
 inside the EM loop but before/after AMQP loop (these hooks are currently not implemented)
 

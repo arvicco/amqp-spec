@@ -20,11 +20,7 @@
 
 == 0.1.0 / 2010-10-15
 
-* Monkeypatched start/stop_connection into AMQP
-
-== 0.1.1 / 2010-10-15
-
-* Cleanup in AMQP.cleanup
+* Monkeypatched start/stop_connection directly into AMQP
 
 == 0.1.2 / 2010-10-15
 
@@ -36,16 +32,12 @@
 
 == 0.1.4 / 2010-10-15
 
-* Problematic tests fixed
-
-== 0.1.5 / 2010-10-15
-
-* Clean up debugging output
-
-== 0.1.6 / 2010-10-15
-
-* README tweaked
+* Problematic tests all fixed
 
 == 0.1.7 / 2010-10-15
 
 * em interface improved for timeout arg
+
+== 0.1.8 / 2010-10-15
+
+* Add AMQP as a dependency
