@@ -5,7 +5,9 @@ $LOAD_PATH << "." unless $LOAD_PATH.include? "." # moronic 1.9.2 breaks things b
 require 'spec'
 require 'yaml'
 
-require File.join(File.dirname(__FILE__), '..', 'lib', 'amqp-spec', 'rspec.rb')
+require 'amqp-spec/rspec'
+require 'shared_examples'
+#require File.join(File.dirname(__FILE__), '..', 'lib', 'amqp-spec', 'rspec.rb')
 
 amqp_config = File.dirname(__FILE__) + '/amqp.yml'
 if File.exists? amqp_config

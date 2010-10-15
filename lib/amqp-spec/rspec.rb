@@ -1,5 +1,5 @@
-require 'mq'
 require 'fiber' unless Fiber.respond_to?(:current)
+require 'mq'
 
 # You can include one of the following modules into your example groups:
 # AMQP::SpecHelper
@@ -22,6 +22,36 @@ require 'fiber' unless Fiber.respond_to?(:current)
 # TODO: Define 'async' method wrapping async requests and returning results... 'async_loop' too for subscribe?
 # TODO: 'evented_before', 'evented_after' that will be run inside EM before the example
 module AMQP
+
+  # Initializes new AMQP client/connection without starting another EM loop
+  def self.start_connection opts={}, &block
+    puts "!!!!!!!!! Existing connection: #{@conn}" if @conn
+    @conn = connect opts
+#       @conn ||= connect opts
+    @conn.callback(&block) if block
+  end
+
+  # Closes AMQP connection and raises optional exception AFTER the AMQP connection is 100% closed
+  def self.stop_connection exception=nil
+    if AMQP.conn and not AMQP.closing
+      @closing = true
+#         MQ.reset ?
+      @conn.close {
+        yield if block_given?
+        cleanup_state exception
+      }
+    end
+  end
+
+  def self.cleanup_state exception=nil
+    Thread.current[:mq] = nil
+    Thread.current[:mq_id] = nil
+    @conn = nil
+    @closing = false
+    p "Finished AMQP cleanup! Thread.current[:mq] #{Thread.current[:mq].inspect}" if Thread.current[:mq]
+    raise exception if exception
+  end
+
   module SpecHelper
 
     SpecTimeoutExceededError = Class.new(RuntimeError)
@@ -40,6 +70,7 @@ module AMQP
               @@_em_default_timeout
             end
           end
+
           alias default_timeout default_spec_timeout
 
           def self.default_options(opts=nil)
@@ -66,24 +97,30 @@ module AMQP
 
     def amqp opts={}, &block
       opts = @@_em_default_options.merge opts
-      EM.run do
+      begin
+        EM.run do
 #        begin ?
-        @_em_spec_with_amqp = true
-        @_em_spec_exception = nil
-        spec_timeout = opts.delete(:spec_timeout) || @@_em_default_timeout
-        timeout(spec_timeout) if spec_timeout
-        @_em_spec_fiber = Fiber.new do
-          begin
-            amqp_start opts, &block
-          rescue Exception => @_em_spec_exception
-            p @_em_spec_exception
-            done
+          @_em_spec_with_amqp = true
+          @_em_spec_exception = nil
+          spec_timeout = opts.delete(:spec_timeout) || @@_em_default_timeout
+          timeout(spec_timeout) if spec_timeout
+          @_em_spec_fiber = Fiber.new do
+            begin
+              AMQP.start_connection opts, &block
+            rescue Exception => @_em_spec_exception
+              p "inner", @_em_spec_exception
+              done
+            end
+            Fiber.yield
           end
-          Fiber.yield
-        end
 
-        @_em_spec_fiber.resume
-#        raise @_em_spec_exception if @_em_spec_exception
+          @_em_spec_fiber.resume
+        end
+      rescue Exception => outer_spec_exception
+        p "outer", outer_spec_exception unless outer_spec_exception.is_a? SpecTimeoutExceededError
+        # Makes sure AMQP state is cleaned even after Rspec failures
+        AMQP.cleanup_state
+        raise outer_spec_exception
       end
     end
 
@@ -117,53 +154,31 @@ module AMQP
       end
     end
 
-    # Stops AMQP and EM event loop
+    # Stops EM event loop, for amqp specs stops AMQP and cleans up its state
     def done
       EM.next_tick do
         if @_em_spec_with_amqp
-          amqp_stop(@_em_spec_exception) do
-            finish_em_spec_fiber
+          if AMQP.conn and not AMQP.closing
+            AMQP.stop_connection do
+              finish_em_spec_fiber { AMQP.cleanup_state }
+            end
+          else
+            finish_em_spec_fiber { AMQP.cleanup_state }
           end
         else
           finish_em_spec_fiber
-          raise @_em_spec_exception if @_em_spec_exception
         end
       end
     end
 
     private
 
+    # Stops EM loop, executes optional block, finishes off fiber and raises exception if any
     def finish_em_spec_fiber
       EM.stop_event_loop if EM.reactor_running?
-#      p Thread.current, Thread.current[:mq], __LINE__
+      yield if block_given?
       @_em_spec_fiber.resume if @_em_spec_fiber.alive?
-    end
-
-    # Private method that initializes AMQP client/connection without starting another EM loop
-    def amqp_start opts={}, &block
-      AMQP.instance_exec do
-#  p Thread.current, Thread.current[:mq]
-        puts "!!!!!!!!! Existing connection: #{@conn}" if @conn
-        @conn = connect opts
-#       @conn ||= connect opts
-        @conn.callback(&block) if block
-      end
-    end
-
-    # Private method that closes AMQP connection and raises optional
-    # exception AFTER the AMQP connection is 100% closed
-    def amqp_stop exception
-      if AMQP.conn and not AMQP.closing
-        AMQP.instance_exec do #(@_em_spec_exception) do |exception|
-          @closing = true
-          @conn.close {
-            yield if block_given?
-            @conn = nil
-            @closing = false
-            raise exception if exception
-          }
-        end
-      end
+      raise @_em_spec_exception if @_em_spec_exception
     end
   end
 

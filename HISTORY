@@ -17,3 +17,7 @@
 == 0.0.4 / 2010-10-14
 
 * Problems with default_options resolved
+
+== 0.1.0 / 2010-10-15
+
+* Monkeypatched start/stop_connection into AMQP
