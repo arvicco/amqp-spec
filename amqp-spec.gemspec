@@ -1,13 +1,13 @@
 # encoding: utf-8
+
 lib = File.expand_path('../lib/', __FILE__)
 $:.unshift lib unless $:.include?(lib)
 
-require 'version'
 require 'date'
 
 Gem::Specification.new do |gem|
   gem.name        = "amqp-spec"
-  gem.version     = AMQP::Spec::VERSION
+  gem.version     = File.open('VERSION').read.strip #::AMQP::Spec::VERSION
   gem.summary     = %q{Simple API for writing (asynchronous) AMQP specs}
   gem.description = %q{Simple API for writing (asynchronous) AMQP specs}
   gem.authors     = ["Arvicco"]
