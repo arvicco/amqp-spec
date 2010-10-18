@@ -32,5 +32,5 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency(%q{rspec}, [">= 1.2.9"])
   gem.add_dependency(%q{amqp}, ["~> 0.6.7"])
 
-  gem.rubygems_version  = `gem -v`
+#  gem.rubygems_version  = `gem -v`
 end
