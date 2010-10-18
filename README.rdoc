@@ -152,6 +152,57 @@ when including AMQP::Spec, and same caution about using them applies.
 
 ...
 
+==General notes
+
+For a developer new to evented specs, it is not easy to internalize that the blocks given to asynchronous
+methods are turned into real callbacks, intended to fire some time later. It is not easy to keep track of
+the actual execution path of your code, when your blocks are supposed to fire and in what sequence.
+Take the following spec as an example:
+
+  it 'receives published message' do
+    amqp do
+      q = MQ.queue('queue_name')
+      q.subscribe do |hdr, msg|
+        msg.should_not == 'data'
+      end
+      MQ.queue('queue_name').publish 'data'
+      q.unsubscribe; q.delete
+      done
+    end
+  end
+
+Seems like a straightforward spec: you subscribe to a message queue, you set expectations inside
+your subscribe block, then you publish into this queue, then you call done. What may be wrong with it?
+Well, if you happen to use this spec against live AMQP broker, everything may be wrong.
+First, communication delays. There is no guarantee that by the time you publish your message, the queue
+have been either created or subscribed to. There is also no guarantee that your subscriber received
+the message by the time you are unsubscribing and deleting your queue.
+Second, sequence of your blocks. Remember, they are delayed callbacks! Don't just assume your previous
+block is already executed when you start your new asynchronous action. In this spec, when done is called,
+it stops everything before your subscribe callback even has a chance to fire. As a result, you'll get a
+PASSING spec even though your expectation was never executed!
+
+How to improve this spec? Allow some time for async actions to finish: either use EM timers or pass
+:nowait=>false to your asynch calls to force them into synchronicity. Keep in mind the sequence in which
+your callbacks are expected to fire - so place your done call at the end of subscribe block in this
+example. If you want to be paranoid, you can set flags inside your callbacks and then check that they
+actually fired at all AFTER your amqp/em block. Something like this will do the trick:
+
+  it 'receives published message' do
+    amqp do
+      q = MQ.queue('queue_name')
+      q.subscribe do |hdr, msg|
+        @subscribe_fired == true
+        msg.should == 'data'
+        done {q.unsubscribe; q.delete}
+      end
+      EM.add_timer(0.2) do
+        MQ.queue('queue_name').publish 'data'
+      end
+    end
+    @subscribe_fired.should be_true
+  end
+
 ==Limitations
 
 AMQP-Spec can be currently used with rspec only. I suppose, there is nothing special in extending EM-Spec's

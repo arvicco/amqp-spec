@@ -12,10 +12,7 @@ def publish_and_consume_once(queue_name="test_sink", data="data")
     q.subscribe do |hdr, msg|
       hdr.should be_an MQ::Header
       msg.should == data
-      EM.next_tick {
-        q.unsubscribe; q.delete
-        done
-      }
+      done {q.unsubscribe; q.delete}
     end
     EM.add_timer(0.2) do
       MQ.queue(queue_name).publish data
@@ -34,11 +31,10 @@ context 'Evented AMQP specs' do
     p default_options
 
     it_should_behave_like 'SpecHelper examples'
-    it_should_behave_like 'timeout examples'
 
     context 'inside embedded context / example group' do
+
       it_should_behave_like 'SpecHelper examples'
-      it_should_behave_like 'timeout examples'
     end
   end
 

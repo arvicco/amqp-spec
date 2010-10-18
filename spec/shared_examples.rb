@@ -61,6 +61,7 @@ shared_examples_for 'SpecHelper examples' do
   end
 
   it_should_behave_like 'done examples'
+  it_should_behave_like 'timeout examples'
 end
 
 shared_examples_for 'Spec examples' do
