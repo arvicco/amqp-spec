@@ -24,7 +24,7 @@ require 'mq'
 module AMQP
 
   # Initializes new AMQP client/connection without starting another EM loop
-  def self.start_connection opts={}, &block
+  def self.start_connection(opts={}, &block)
 #    puts "!!!!!!!!! Existing connection: #{@conn}" if @conn
     @conn = connect opts
     @conn.callback(&block) if block
@@ -91,7 +91,6 @@ module AMQP
       opts = @@_em_default_options.merge opts
       begin
         EM.run do
-#        begin ?
           @_em_spec_with_amqp = true
           @_em_spec_exception = nil
           spec_timeout = opts.delete(:spec_timeout) || @@_em_default_timeout
@@ -110,7 +109,7 @@ module AMQP
         end
       rescue Exception => outer_spec_exception
 #        p "outer", outer_spec_exception unless outer_spec_exception.is_a? SpecTimeoutExceededError
-        # Makes sure AMQP state is cleaned even after Rspec failures
+        # Make sure AMQP state is cleaned even after Rspec failures
         AMQP.cleanup_state
         raise outer_spec_exception
       end
@@ -146,20 +145,35 @@ module AMQP
       end
     end
 
-    # Stops EM event loop, for amqp specs stops AMQP and cleans up its state
-    def done
-      EM.next_tick do
-        if @_em_spec_with_amqp
-          if AMQP.conn and not AMQP.closing
-            AMQP.stop_connection do
+    # Breaks the event loop and finishes the spec. This should be called after
+    # you are reasonably sure that your expectations either succeeded or failed.
+    # Done yields to any given block first, then stops EM event loop.
+    # For amqp specs, stops AMQP and cleans up AMQP state.
+    #
+    # You may pass delay (in seconds) to done. If you do so, please keep in mind
+    # that your (default or explicit) spec timeout may fire before your delayed done
+    # callback is due, leading to SpecTimeoutExceededError
+    def done(delay=nil)
+      done_proc = proc do
+        yield if block_given?
+        EM.next_tick do
+          if @_em_spec_with_amqp
+            if AMQP.conn and not AMQP.closing
+              AMQP.stop_connection do
+                finish_em_spec_fiber { AMQP.cleanup_state }
+              end
+            else
               finish_em_spec_fiber { AMQP.cleanup_state }
             end
           else
-            finish_em_spec_fiber { AMQP.cleanup_state }
+            finish_em_spec_fiber
           end
-        else
-          finish_em_spec_fiber
         end
+      end
+      if delay
+        EM.add_timer delay, &done_proc
+      else
+        done_proc.call
       end
     end
 

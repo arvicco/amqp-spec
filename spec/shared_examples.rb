@@ -59,6 +59,8 @@ shared_examples_for 'SpecHelper examples' do
     }.should raise_error EventMachine::ConnectionError
     AMQP.conn.should be_nil
   end
+
+  it_should_behave_like 'done examples'
 end
 
 shared_examples_for 'Spec examples' do
@@ -102,6 +104,42 @@ shared_examples_for 'Spec examples' do
     }
   end
 end
+
+shared_examples_for 'done examples' do
+
+  it 'should yield to block given to done (when amqp is used)' do
+    amqp do
+      done { @block_called = true; EM.reactor_running?.should == true }
+    end
+    @block_called.should == true
+  end
+
+  it 'should yield to block given to done (when em is used)' do
+    em do
+      done { @block_called = true; EM.reactor_running?.should == true }
+    end
+    @block_called.should == true
+  end
+
+  it 'should have delayed done (when amqp is used)' do
+    start = Time.now
+    amqp do
+      done(0.2) { @block_called = true; EM.reactor_running?.should == true }
+    end
+    @block_called.should == true
+    (Time.now-start).should be_close(0.2, 0.05)
+  end
+
+  it 'should have delayed done (when em is used)' do
+    start = Time.now
+    em do
+      done(0.2) { @block_called = true; EM.reactor_running?.should == true }
+    end
+    @block_called.should == true
+    (Time.now-start).should be_close(0.2, 0.05)
+  end
+end
+
 
 shared_examples_for 'timeout examples' do
   before(:each) { @start = Time.now }
