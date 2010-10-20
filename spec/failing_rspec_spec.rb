@@ -20,16 +20,12 @@ context 'Following examples should all be failing:' do
 
     include AMQP::EMSpec
     it 'should timeout before reaching done' do
-      EM.add_timer(2) {
-        done
-      }
+      EM.add_timer(2) { done }
     end
 
     it 'should timeout before reaching done' do
       timeout(0.3)
-      EM.add_timer(0.6) {
-        done
-      }
+      EM.add_timer(0.6) { done }
     end
   end
 
@@ -37,19 +33,15 @@ context 'Following examples should all be failing:' do
 
     include AMQP::Spec
 
-    default_timeout 1
+    default_timeout 1 # Because we may need to run this spec file separately
 
     it 'should timeout before reaching done' do
-      EM.add_timer(2) {
-        done
-      }
+      EM.add_timer(2) { done }
     end
 
     it 'should timeout before reaching done' do
       timeout(0.2)
-      EM.add_timer(0.5) {
-        done
-      }
+      EM.add_timer(0.5) { done }
     end
 
     it 'should fail due to timeout, not hang up' do

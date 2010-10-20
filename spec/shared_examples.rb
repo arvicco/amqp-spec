@@ -9,15 +9,12 @@ shared_examples_for 'SpecHelper examples' do
   end
 
   it "should properly work" do
-    amqp do
-      done
-    end
+    amqp { done}
   end
 
   it "should have timers" do
+    start = Time.now
     amqp do
-      start = Time.now
-
       EM.add_timer(0.5) {
         (Time.now-start).should be_close(0.5, 0.1)
         done
@@ -51,12 +48,12 @@ shared_examples_for 'SpecHelper examples' do
   end
 
   it "should gracefully exit if no AMQP connection was made" do
-    proc {
+    expect {
       amqp(:host => 'Impossible') do
         AMQP.conn.should be_nil
         done
       end
-    }.should raise_error EventMachine::ConnectionError
+    }.to raise_error EventMachine::ConnectionError
     AMQP.conn.should be_nil
   end
 
@@ -146,35 +143,30 @@ shared_examples_for 'timeout examples' do
   before(:each) { @start = Time.now }
 
   it 'should timeout before reaching done because of default spec timeout' do
-    proc {
-      amqp do
-        EM.add_timer(2) { done }
-      end
-    }.should raise_error SpecTimeoutExceededError
+    expect { amqp { EM.add_timer(2) { done } } }.
+            to raise_error SpecTimeoutExceededError
     (Time.now-@start).should be_close(1.0, 0.1)
   end
 
   it 'should timeout before reaching done because of explicit in-loop timeout' do
-    proc {
+    expect {
       amqp do
         timeout(0.2)
         EM.add_timer(0.5) { done }
       end
-    }.should raise_error SpecTimeoutExceededError
+    }.to raise_error SpecTimeoutExceededError
     (Time.now-@start).should be_close(0.2, 0.1)
   end
 
   specify "spec timeout given in amqp options has higher priority than default" do
-    proc {
-      amqp(:spec_timeout => 0.2) {}
-    }.should raise_error SpecTimeoutExceededError
+    expect { amqp(:spec_timeout => 0.2) {} }.
+            to raise_error SpecTimeoutExceededError
     (Time.now-@start).should be_close(0.2, 0.1)
   end
 
   specify "but timeout call inside amqp loop has even higher priority" do
-    proc {
-      amqp(:spec_timeout => 0.5) { timeout(0.2) }
-    }.should raise_error SpecTimeoutExceededError
+    expect { amqp(:spec_timeout => 0.5) { timeout(0.2) } }.
+            to raise_error SpecTimeoutExceededError
     (Time.now-@start).should be_close(0.2, 0.1)
   end
 

@@ -9,9 +9,8 @@ context 'Plain EM, no AMQP' do
     end
 
     it "should have timers" do
+      start = Time.now
       em do
-        start = Time.now
-
         EM.add_timer(0.5) {
           (Time.now-start).should be_close(0.5, 0.1)
           done
@@ -21,27 +20,21 @@ context 'Plain EM, no AMQP' do
 
     it "should be possible to set spec timeouts as a number of secounds" do
       start = Time.now
-      proc {
+      expect {
         em(0.5) do
-
-          EM.add_timer(1) {
-            done
-          }
+          EM.add_timer(1) { done }
         end
-      }.should raise_error SpecTimeoutExceededError
+      }.to raise_error SpecTimeoutExceededError
       (Time.now-start).should be_close(0.5, 0.1)
     end
 
     it "should be possible to set spec timeout as an option (amqp interface compatibility)" do
       start = Time.now
-      proc {
+      expect {
         em(0.5) do
-
-          EM.add_timer(1) {
-            done
-          }
+          EM.add_timer(1) { done }
         end
-      }.should raise_error SpecTimeoutExceededError
+      }.to raise_error SpecTimeoutExceededError
       (Time.now-start).should be_close(0.5, 0.1)
     end
   end
@@ -50,7 +43,6 @@ context 'Plain EM, no AMQP' do
     include AMQP::EMSpec
 
     it_should_behave_like 'Spec examples'
-
   end
 end
 

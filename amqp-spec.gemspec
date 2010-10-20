@@ -3,18 +3,16 @@
 lib = File.expand_path('../lib/', __FILE__)
 $:.unshift lib unless $:.include?(lib)
 
-require 'date'
-
 Gem::Specification.new do |gem|
   gem.name        = "amqp-spec"
-  gem.version     = File.open('VERSION').read.strip #::AMQP::Spec::VERSION
+  gem.version     = File.open('VERSION').read.strip #::AMQP::Spec::VERSION conflicts with Bundler
   gem.summary     = %q{Simple API for writing (asynchronous) AMQP specs}
   gem.description = %q{Simple API for writing (asynchronous) AMQP specs}
   gem.authors     = ["Arvicco"]
   gem.email       = "arvitallian@gmail.com"
   gem.homepage    = %q{http://github.com/arvicco/amqp-spec}
   gem.platform    = Gem::Platform::RUBY
-  gem.date        = Date.today.to_s
+  gem.date        = Time.now.strftime "%Y-%m-%d"
 
   # Files setup
   versioned         = `git ls-files -z`.split("\0")
@@ -31,6 +29,4 @@ Gem::Specification.new do |gem|
   # Dependencies
   gem.add_development_dependency(%q{rspec}, [">= 1.2.9"])
   gem.add_dependency(%q{amqp}, ["~> 0.6.7"])
-
-#  gem.rubygems_version  = `gem -v`
 end

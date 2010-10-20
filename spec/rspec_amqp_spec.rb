@@ -51,21 +51,21 @@ context 'Evented AMQP specs' do
     include AMQP::SpecHelper
 
     it "bubbles failing expectations up to Rspec" do
-      proc {
+      expect {
         amqp do
           :this.should == :fail
         end
-      }.should raise_error Spec::Expectations::ExpectationNotMetError
+      }.to raise_error Spec::Expectations::ExpectationNotMetError
       AMQP.conn.should == nil
     end
 
     it "should NOT ignore failing expectations after 'done'" do
-      proc {
+      expect {
         amqp do
           done
           :this.should == :fail
         end
-      }.should raise_error Spec::Expectations::ExpectationNotMetError
+      }.to raise_error Spec::Expectations::ExpectationNotMetError
       AMQP.conn.should == nil
     end
 
@@ -77,11 +77,11 @@ context 'Evented AMQP specs' do
   describe 'MQ', " when MQ.queue/fanout/topic tries to access Thread.current[:mq] across examples" do
     include AMQP::SpecHelper
 
-    it 'sends data to queue' do
+    it 'sends data to the queue' do
       publish_and_consume_once
     end
 
-    it 'sends data to queue, again' do
+    it 'does not hang sending data to the same queue, again' do
       publish_and_consume_once
     end
 
