@@ -1,5 +1,5 @@
 shared_examples_for 'SpecHelper examples' do
-  after(:each) do
+  after do
     EM.reactor_running?.should == false
     AMQP.conn.should be_nil
   end
@@ -62,7 +62,7 @@ shared_examples_for 'SpecHelper examples' do
 end
 
 shared_examples_for 'Spec examples' do
-  after(:each) do
+  after do
     EM.reactor_running?.should == true
 #      AMQP.conn.should be_nil # You're inside running amqp block, stupid!
     done
@@ -140,7 +140,7 @@ end
 
 
 shared_examples_for 'timeout examples' do
-  before(:each) { @start = Time.now }
+  before { @start = Time.now }
 
   it 'should timeout before reaching done because of default spec timeout' do
     expect { amqp { EM.add_timer(2) { done } } }.
