@@ -1,11 +1,5 @@
 require_relative 'spec_helper.rb'
 
-describe 'Rspec' do
-  it 'should work as normal without AMQP-Spec' do
-    1.should == 1
-  end
-end
-
 def publish_and_consume_once(queue_name="test_sink", data="data")
   amqp do
     q = MQ.queue(queue_name)
@@ -20,7 +14,13 @@ def publish_and_consume_once(queue_name="test_sink", data="data")
   end
 end
 
-context 'Evented AMQP specs' do
+describe RSPEC do
+  it 'should work as normal without AMQP-Spec' do
+    1.should == 1
+  end
+end
+
+describe 'Evented AMQP specs' do
   describe AMQP, " when testing with AMQP::SpecHelper" do
     include AMQP::SpecHelper
 
@@ -55,7 +55,7 @@ context 'Evented AMQP specs' do
         amqp do
           :this.should == :fail
         end
-      }.to raise_error Spec::Expectations::ExpectationNotMetError
+      }.to raise_error RSPEC::Expectations::ExpectationNotMetError
       AMQP.conn.should == nil
     end
 
@@ -65,7 +65,7 @@ context 'Evented AMQP specs' do
           done
           :this.should == :fail
         end
-      }.to raise_error Spec::Expectations::ExpectationNotMetError
+      }.to raise_error RSPEC::Expectations::ExpectationNotMetError
       AMQP.conn.should == nil
     end
 
@@ -91,7 +91,7 @@ context 'Evented AMQP specs' do
   end
 end
 
-describe "Rspec", " when running an example group after another group that uses AMQP-Spec " do
+describe RSPEC, " when running an example group after another group that uses AMQP-Spec " do
   it "should work normally" do
     :does_not_hang.should_not be_false
   end

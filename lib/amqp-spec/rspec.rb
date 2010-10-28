@@ -55,25 +55,42 @@ module AMQP
     SpecTimeoutExceededError = Class.new(RuntimeError)
 
     def self.included(example_group)
-      ::Spec::Example::ExampleGroup.instance_exec do
-        unless defined? default_spec_timeout
+#     unless defined? self.default_timeout
+      if defined?(RSpec)
+        example_group.instance_exec do
 
+          metadata[:em_default_options] = {}
+          metadata[:em_default_timeout] = nil
+
+          def self.default_timeout(spec_timeout=nil)
+            metadata[:em_default_timeout] = spec_timeout if spec_timeout
+            metadata[:em_default_timeout]
+          end
+
+          def self.default_options(opts=nil)
+            metadata[:em_default_options] = opts if opts
+            metadata[:em_default_options]
+          end
+        end
+      else
+        ::Spec::Example::ExampleGroup.instance_exec do
           @@_em_default_options = {}
           @@_em_default_timeout = nil
 
-          def self.default_spec_timeout(spec_timeout=nil)
+          def self.default_timeout(spec_timeout=nil)
             @@_em_default_timeout = spec_timeout if spec_timeout
             @@_em_default_timeout
           end
-
-          alias default_timeout default_spec_timeout
 
           def self.default_options(opts=nil)
             @@_em_default_options = opts if opts
             @@_em_default_options
           end
         end
+
+#        end
       end
+
     end
 
     # Yields to given block inside EM.run and AMQP.start loops. This method takes any option that is
@@ -88,12 +105,12 @@ module AMQP
     # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
     #
     def amqp opts={}, &block
-      opts = @@_em_default_options.merge opts
+      opts = self.class.default_options.merge opts
       begin
         EM.run do
           @_em_spec_with_amqp = true
           @_em_spec_exception = nil
-          spec_timeout = opts.delete(:spec_timeout) || @@_em_default_timeout
+          spec_timeout = opts.delete(:spec_timeout) || self.class.default_timeout
           timeout(spec_timeout) if spec_timeout
           @_em_spec_fiber = Fiber.new do
             begin
@@ -117,8 +134,8 @@ module AMQP
 
     # Yields to block inside EM loop, :spec_timeout option (in seconds) is used to force spec to timeout
     # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
-    def em(spec_timeout = @@_em_default_timeout, &block)
-      spec_timeout = spec_timeout[:spec_timeout] || @@_em_default_timeout if spec_timeout.is_a?(Hash)
+    def em(spec_timeout = self.class.default_timeout, &block)
+      spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
       EM.run do
         @_em_spec_with_amqp = false
         @_em_spec_exception = nil

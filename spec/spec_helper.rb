@@ -1,17 +1,18 @@
-#$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
-
 $LOAD_PATH << "." unless $LOAD_PATH.include? "." # moronic 1.9.2 breaks things bad
 
-require 'spec'
-require 'yaml'
+require 'bundler'
+Bundler.setup
+Bundler.require :test
 
+require 'yaml'
 require 'amqp-spec/rspec'
 require 'shared_examples'
-#require File.join(File.dirname(__FILE__), '..', 'lib', 'amqp-spec', 'rspec.rb')
+
+RSPEC = defined?(RSpec) ? RSpec : Spec
 
 amqp_config = File.dirname(__FILE__) + '/amqp.yml'
-if File.exists? amqp_config
 
+if File.exists? amqp_config
   class Hash
     def symbolize_keys
       self.inject({}) { |result, (key, value)|

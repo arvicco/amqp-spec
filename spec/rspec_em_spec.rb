@@ -1,6 +1,6 @@
 require_relative 'spec_helper.rb'
 
-context 'Plain EM, no AMQP' do
+describe 'Plain EM, no AMQP' do
   describe EventMachine, " when testing with AMQP::SpecHelper" do
     include AMQP::SpecHelper
 
@@ -46,7 +46,7 @@ context 'Plain EM, no AMQP' do
   end
 end
 
-describe "Rspec", " when running an example group after groups that uses EM specs " do
+describe RSPEC, " when running an example group after groups that uses EM specs " do
   it "should work normally" do
     :does_not_hang.should_not be_false
   end

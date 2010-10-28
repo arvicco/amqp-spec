@@ -61,48 +61,6 @@ shared_examples_for 'SpecHelper examples' do
   it_should_behave_like 'timeout examples'
 end
 
-shared_examples_for 'Spec examples' do
-  after do
-    EM.reactor_running?.should == true
-#      AMQP.conn.should be_nil # You're inside running amqp block, stupid!
-    done
-  end
-
-  it 'should work' do
-    done
-  end
-
-  it 'should have timers' do
-    start = Time.now
-
-    EM.add_timer(0.5) {
-      (Time.now-start).should be_close(0.5, 0.1)
-      done
-    }
-  end
-
-  it 'should have periodic timers' do
-    num = 0
-    start = Time.now
-
-    timer = EM.add_periodic_timer(0.25) {
-      if (num += 1) == 2
-        (Time.now-start).should be_close(0.5, 0.1)
-        EM.cancel_timer timer
-        done
-      end
-    }
-  end
-
-  it 'should have deferrables' do
-    defr = EM::DefaultDeferrable.new
-    defr.timeout(0.5)
-    defr.errback {
-      done
-    }
-  end
-end
-
 shared_examples_for 'done examples' do
 
   it 'should yield to block given to done (when amqp is used)' do
@@ -137,7 +95,6 @@ shared_examples_for 'done examples' do
     (Time.now-start).should be_close(0.2, 0.05)
   end
 end
-
 
 shared_examples_for 'timeout examples' do
   before { @start = Time.now }
@@ -175,4 +132,44 @@ shared_examples_for 'timeout examples' do
   end
 end
 
+shared_examples_for 'Spec examples' do
+  after do
+    EM.reactor_running?.should == true
+#      AMQP.conn.should be_nil # You're inside running amqp block, stupid!
+    done
+  end
 
+  it 'should work' do
+    done
+  end
+
+  it 'should have timers' do
+    start = Time.now
+
+    EM.add_timer(0.25) {
+      (Time.now-start).should be_close(0.25, 0.1)
+      done
+    }
+  end
+
+  it 'should have periodic timers' do
+    num = 0
+    start = Time.now
+
+    timer = EM.add_periodic_timer(0.25) {
+      if (num += 1) == 2
+        (Time.now-start).should be_close(0.5, 0.1)
+        EM.cancel_timer timer
+        done
+      end
+    }
+  end
+
+  it 'should have deferrables' do
+    defr = EM::DefaultDeferrable.new
+    defr.timeout(0.25)
+    defr.errback {
+      done
+    }
+  end
+end
