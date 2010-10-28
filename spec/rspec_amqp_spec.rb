@@ -27,7 +27,7 @@ describe 'Evented AMQP specs' do
     default_options AMQP_OPTS if defined? AMQP_OPTS
     default_timeout 1 # Can be used to set default :spec_timeout for all your amqp-based specs
 
-    puts "Default timeout: #{default_timeout.inspect}, Default options:"
+    puts "Default timeout: #{default_timeout}, Default options:"
     p default_options
 
     it_should_behave_like 'SpecHelper examples'

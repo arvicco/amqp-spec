@@ -8,7 +8,11 @@ require 'yaml'
 require 'amqp-spec/rspec'
 require 'shared_examples'
 
-RSPEC = defined?(RSpec) ? RSpec : Spec
+def rspec2?
+  defined?(RSpec)
+end
+
+RSPEC = rspec2? ? RSpec : Spec
 
 amqp_config = File.dirname(__FILE__) + '/amqp.yml'
 

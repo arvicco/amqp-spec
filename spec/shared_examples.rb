@@ -130,6 +130,27 @@ shared_examples_for 'timeout examples' do
   specify "AMQP connection should not leak between examples" do
     AMQP.conn.should be_nil
   end
+
+  if rspec2?
+    context 'embedded context can set up separate defaults' do
+      default_timeout 0.25 # Can be used to set default :spec_timeout for all your amqp-based specs
+
+      specify 'default timeout should be 0.25' do
+        expect { amqp { EM.add_timer(2) { done } } }.to raise_error SpecTimeoutExceededError
+        (Time.now-@start).should be_close(0.25, 0.1)
+      end
+
+      context 'deeply embedded context can set up separate defaults' do
+        default_timeout 0.5 # Can be used to set default :spec_timeout for all your amqp-based specs
+
+        specify 'default timeout should be 0.5' do
+          expect { amqp { EM.add_timer(2) { done } } }.to raise_error SpecTimeoutExceededError
+          (Time.now-@start).should be_close(0.5, 0.1)
+        end
+      end
+    end
+
+  end
 end
 
 shared_examples_for 'Spec examples' do

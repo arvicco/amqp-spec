@@ -46,22 +46,14 @@
 
 * SpecHelper class methods refactored
 
-== 0.1.10 / 2010-10-15
-
-* Cleanup
-
 == 0.1.11 / 2010-10-18
 
 * Optional delay added to done
 
-== 0.1.12 / 2010-10-18
-
-* README extended
-
-== 0.1.13 / 2010-10-23
-
-* Release
-
 == 0.2.0 / 2010-10-28
 
 * Rspec 2 support added
+
+== 0.2.1 / 2010-10-28
+
+* RSpec2-specific examples added

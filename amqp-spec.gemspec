@@ -6,8 +6,8 @@ $:.unshift lib unless $:.include?(lib)
 Gem::Specification.new do |gem|
   gem.name        = "amqp-spec"
   gem.version     = File.open('VERSION').read.strip #::AMQP::Spec::VERSION conflicts with Bundler
-  gem.summary     = %q{Simple API for writing (asynchronous) AMQP specs}
-  gem.description = %q{Simple API for writing (asynchronous) AMQP specs}
+  gem.summary     = %q{Simple API for writing asynchronous EventMachine/AMQP specs. Supports RSpec and RSpec2.}
+  gem.description = %q{Simple API for writing asynchronous EventMachine/AMQP specs. Supports RSpec and RSpec2.}
   gem.authors     = ["Arvicco"]
   gem.email       = "arvitallian@gmail.com"
   gem.homepage    = %q{http://github.com/arvicco/amqp-spec}

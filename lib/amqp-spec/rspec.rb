@@ -55,42 +55,39 @@ module AMQP
     SpecTimeoutExceededError = Class.new(RuntimeError)
 
     def self.included(example_group)
-#     unless defined? self.default_timeout
-      if defined?(RSpec)
-        example_group.instance_exec do
 
-          metadata[:em_default_options] = {}
-          metadata[:em_default_timeout] = nil
+      extended_class = defined?(RSpec) ? example_group : ::Spec::Example::ExampleGroup
+      unless extended_class.respond_to? :default_timeout
+        extended_class.instance_exec do
+          if defined?(RSpec)
+            metadata[:em_default_options] = {}
+            metadata[:em_default_timeout] = nil
 
-          def self.default_timeout(spec_timeout=nil)
-            metadata[:em_default_timeout] = spec_timeout if spec_timeout
-            metadata[:em_default_timeout]
-          end
+            def self.default_timeout(spec_timeout=nil)
+              metadata[:em_default_timeout] = spec_timeout if spec_timeout
+              metadata[:em_default_timeout]
+            end
 
-          def self.default_options(opts=nil)
-            metadata[:em_default_options] = opts if opts
-            metadata[:em_default_options]
+            def self.default_options(opts=nil)
+              metadata[:em_default_options] = opts if opts
+              metadata[:em_default_options]
+            end
+          else
+            @@_em_default_options = {}
+            @@_em_default_timeout = nil
+
+            def self.default_timeout(spec_timeout=nil)
+              @@_em_default_timeout = spec_timeout if spec_timeout
+              @@_em_default_timeout
+            end
+
+            def self.default_options(opts=nil)
+              @@_em_default_options = opts if opts
+              @@_em_default_options
+            end
           end
         end
-      else
-        ::Spec::Example::ExampleGroup.instance_exec do
-          @@_em_default_options = {}
-          @@_em_default_timeout = nil
-
-          def self.default_timeout(spec_timeout=nil)
-            @@_em_default_timeout = spec_timeout if spec_timeout
-            @@_em_default_timeout
-          end
-
-          def self.default_options(opts=nil)
-            @@_em_default_options = opts if opts
-            @@_em_default_options
-          end
-        end
-
-#        end
       end
-
     end
 
     # Yields to given block inside EM.run and AMQP.start loops. This method takes any option that is

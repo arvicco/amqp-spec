@@ -4,7 +4,7 @@ url: http://github.com/arvicco/amqp-spec
 
 == Summary
 
-Simple API for testing asynchronous EventMachine/AMQP code.
+Simple API for writing asynchronous EventMachine/AMQP specs. Supports RSpec and RSpec2.
 
 == Description
 
@@ -28,12 +28,17 @@ between examples. You can try to combine AMQP-Spec and Moqueue[http://github.com
 if you want to abstract away actual broker interactions, but still specify some event-based expectations.
 
 ==Rspec
+
 There are several ways to use amqp-spec. To use it as a helper, include AMQP::SpecHelper in your describe block.
 You then use either 'amqp' or 'em' methods to wrap your evented test code. Inside the amqp/em block, you must call
 #done after your expectations. Everything works normally otherwise. You can use default_timeout and default_options
 macros to avoid manually setting AMQP options in each example. However, if you DO manually set options inside
-the example, they override the defaults. Only default options and default timeout are global across groups,
-it is currently impossible to have separate defaults for separate groups.
+the example, they override the defaults.
+
+RSpec 1:: Default options and default timeout are global across all groups, it is impossible to have separate
+          defaults for separate groups.
+RSpec 2:: Default options and default timeout are local for each example group and inherited by its nested groups,
+          different example groups can have separate defaults.
 
   require "amqp-spec/rspec"
   describe AMQP do
@@ -205,7 +210,7 @@ actually fired at all AFTER your amqp/em block. Something like this will do the 
 
 ==Limitations
 
-AMQP-Spec can be currently used with rspec only. I suppose, there is nothing special in extending EM-Spec's
+AMQP-Spec can be currently used with Rspec only. I suppose, there is nothing special in extending EM-Spec's
 test unit and bacon support, I just do not have experience dealing with these platforms. Another limitation,
 it uses native Fibers and therefore not compatible with Ruby 1.8. Again, it seems possible to rewrite it in
 1.8-compatible style, with string evals and Fiber backport, but I'd rather leave this work to someone else.
