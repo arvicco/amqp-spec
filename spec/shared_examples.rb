@@ -9,7 +9,7 @@ shared_examples_for 'SpecHelper examples' do
   end
 
   it "should properly work" do
-    amqp { done}
+    amqp { done }
   end
 
   it "should have timers" do

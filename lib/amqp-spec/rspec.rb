@@ -1,5 +1,5 @@
 require 'fiber' unless Fiber.respond_to?(:current)
-require 'mq'
+require 'amqp-spec/amqp'
 
 # You can include one of the following modules into your example groups:
 # AMQP::SpecHelper
@@ -22,69 +22,34 @@ require 'mq'
 # TODO: Define 'async' method wrapping async requests and returning results... 'async_loop' too for subscribe block?
 # TODO: 'evented_before', 'evented_after' that will be run inside EM before the example
 module AMQP
-
-  # Initializes new AMQP client/connection without starting another EM loop
-  def self.start_connection(opts={}, &block)
-#    puts "!!!!!!!!! Existing connection: #{@conn}" if @conn
-    @conn = connect opts
-    @conn.callback(&block) if block
-  end
-
-  # Closes AMQP connection and raises optional exception AFTER the AMQP connection is 100% closed
-  def self.stop_connection
-    if AMQP.conn and not AMQP.closing
-#   MQ.reset ?
-      @closing = true
-      @conn.close {
-        yield if block_given?
-        cleanup_state
-      }
-    end
-  end
-
-  def self.cleanup_state
-#   MQ.reset ?
-    Thread.current[:mq] = nil
-    Thread.current[:mq_id] = nil
-    @conn = nil
-    @closing = false
-  end
-
+#noinspection RubyArgCount
   module SpecHelper
 
     SpecTimeoutExceededError = Class.new(RuntimeError)
 
     def self.included(example_group)
 
-      extended_class = defined?(RSpec) ? example_group : ::Spec::Example::ExampleGroup
-      unless extended_class.respond_to? :default_timeout
-        extended_class.instance_exec do
-          if defined?(RSpec)
-            metadata[:em_default_options] = {}
-            metadata[:em_default_timeout] = nil
+      unless example_group.respond_to? :default_timeout
+        example_group.instance_exec do
 
-            def self.default_timeout(spec_timeout=nil)
-              metadata[:em_default_timeout] = spec_timeout if spec_timeout
-              metadata[:em_default_timeout]
+          # Hacking metadata in for RSpec 1
+          unless respond_to?(:metadata)
+            def self.metadata
+              @metadata ||= superclass.send(:metadata) rescue {}
             end
+          end
 
-            def self.default_options(opts=nil)
-              metadata[:em_default_options] = opts if opts
-              metadata[:em_default_options]
-            end
-          else
-            @@_em_default_options = {}
-            @@_em_default_timeout = nil
+          metadata[:em_default_options] = {}
+          metadata[:em_default_timeout] = nil
 
-            def self.default_timeout(spec_timeout=nil)
-              @@_em_default_timeout = spec_timeout if spec_timeout
-              @@_em_default_timeout
-            end
+          def self.default_timeout(spec_timeout=nil)
+            metadata[:em_default_timeout] = spec_timeout if spec_timeout
+            metadata[:em_default_timeout]
+          end
 
-            def self.default_options(opts=nil)
-              @@_em_default_options = opts if opts
-              @@_em_default_options
-            end
+          def self.default_options(opts=nil)
+            metadata[:em_default_options] = opts if opts
+            metadata[:em_default_options]
           end
         end
       end
@@ -101,15 +66,16 @@ module AMQP
     # In addition to EM and AMQP options, :spec_timeout option (in seconds) is used to force spec to timeout
     # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
     #
+    #noinspection RubyArgCount
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
       begin
         EM.run do
           @_em_spec_with_amqp = true
           @_em_spec_exception = nil
-          spec_timeout = opts.delete(:spec_timeout) || self.class.default_timeout
+          spec_timeout        = opts.delete(:spec_timeout) || self.class.default_timeout
           timeout(spec_timeout) if spec_timeout
-          @_em_spec_fiber = Fiber.new do
+          @_em_spec_fiber     = Fiber.new do
             begin
               AMQP.start_connection opts, &block
             rescue Exception => @_em_spec_exception
@@ -137,7 +103,7 @@ module AMQP
         @_em_spec_with_amqp = false
         @_em_spec_exception = nil
         timeout(spec_timeout) if spec_timeout
-        @_em_spec_fiber = Fiber.new do
+        @_em_spec_fiber     = Fiber.new do
           begin
             block.call
           rescue Exception => @_em_spec_exception
