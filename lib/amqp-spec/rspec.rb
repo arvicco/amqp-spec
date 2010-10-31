@@ -33,7 +33,8 @@ module AMQP
   #
   # TODO: Define 'async' method wrapping async requests and returning results... 'async_loop' too for subscribe block?
   # TODO: 'evented_before', 'evented_after' that will be run inside EM before the example
-  #noinspection RubyArgCount
+  #
+  # noinspection RubyArgCount
   module SpecHelper
 
     SpecTimeoutExceededError = Class.new(RuntimeError)
@@ -41,18 +42,27 @@ module AMQP
     # Class methods (macros) for example group that includes SpecHelper
     #
     module GroupMethods
-      # Hacking metadata in for RSpec 1
       unless respond_to?(:metadata)
+        # Hacking in metadata into RSpec1 to imitate Rspec2's metadata.
+        # You can add to metadata Hash to pass options into examples and
+        # nested groups.
+        #
         def metadata
-          @metadata ||= superclass.metadata rescue {}
+          @metadata ||= superclass.metadata.dup rescue {}
         end
       end
 
+      # Sets/retrieves default timeout for running evented specs for this
+      # example group and its nested groups.
+      #
       def default_timeout(spec_timeout=nil)
         metadata[:em_default_timeout] = spec_timeout if spec_timeout
         metadata[:em_default_timeout]
       end
 
+      # Sets/retrieves default AMQP.start options for this example group
+      # and its nested groups.
+      #
       def default_options(opts=nil)
         metadata[:em_default_options] = opts if opts
         metadata[:em_default_options]
@@ -67,6 +77,7 @@ module AMQP
       end
     end
 
+
     # Yields to given block inside EM.run and AMQP.start loops. This method takes any option that is
     # also accepted by EventMachine::connect. Also, options for AMQP.start include:
     # * :user => String (default ‘guest’) - The username as defined by the AMQP server.
@@ -78,7 +89,6 @@ module AMQP
     # In addition to EM and AMQP options, :spec_timeout option (in seconds) is used to force spec to timeout
     # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
     #
-    #noinspection RubyArgCount
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
       begin
@@ -91,7 +101,6 @@ module AMQP
             begin
               AMQP.start_connection opts, &block
             rescue Exception => @_em_spec_exception
-#              p "inner", @_em_spec_exception
               done
             end
             Fiber.yield
@@ -100,7 +109,6 @@ module AMQP
           @_em_spec_fiber.resume
         end
       rescue Exception => outer_spec_exception
-#        p "outer", outer_spec_exception unless outer_spec_exception.is_a? SpecTimeoutExceededError
         # Make sure AMQP state is cleaned even after Rspec failures
         AMQP.cleanup_state
         raise outer_spec_exception
@@ -109,6 +117,7 @@ module AMQP
 
     # Yields to block inside EM loop, :spec_timeout option (in seconds) is used to force spec to timeout
     # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
+    #
     def em(spec_timeout = self.class.default_timeout, &block)
       spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
       EM.run do
@@ -128,7 +137,8 @@ module AMQP
       end
     end
 
-    # Sets timeout for current spec
+    # Sets timeout for current running example
+    #
     def timeout(spec_timeout)
       EM.cancel_timer(@_em_timer) if @_em_timer
       @_em_timer = EM.add_timer(spec_timeout) do
@@ -145,6 +155,7 @@ module AMQP
     # You may pass delay (in seconds) to done. If you do so, please keep in mind
     # that your (default or explicit) spec timeout may fire before your delayed done
     # callback is due, leading to SpecTimeoutExceededError
+    #
     def done(delay=nil)
       done_proc = proc do
         yield if block_given?
@@ -169,9 +180,16 @@ module AMQP
       end
     end
 
+    # Retrieves metadata passed in from enclosing example groups
+    #
+    def metadata
+      @metadata ||= self.class.metadata.dup rescue {}
+    end
+
     private
 
     # Stops EM loop, executes optional block, finishes off fiber and raises exception if any
+    #
     def finish_em_spec_fiber
       EM.stop_event_loop if EM.reactor_running?
       yield if block_given?

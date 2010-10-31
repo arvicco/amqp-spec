@@ -35,10 +35,9 @@ You then use either 'amqp' or 'em' methods to wrap your evented test code. Insid
 macros to avoid manually setting AMQP options in each example. However, if you DO manually set options inside
 the example, they override the defaults.
 
-RSpec 1:: Default options and default timeout are global across all groups, it is impossible to have separate
-          defaults for separate groups.
-RSpec 2:: Default options and default timeout are local for each example group and inherited by its nested groups,
-          different example groups can have separate defaults.
+Default options and default timeout are local for each example group and inherited by its nested groups,
+different example groups can have separate defaults. Please note that this is different from em-spec where
+default_timeout is effectively a global setting.
 
   require "amqp-spec/rspec"
   describe AMQP do
@@ -95,11 +94,6 @@ inside the EM loop but before/after AMQP loop (these hooks are currently not imp
   require "amqp-spec/rspec"
   describe AMQP do
     include AMQP::Spec
-
-    before(:each) do
-      puts EM.reactor_running?
-      done
-    end
 
     it "requires a call to #done in every example" do
       1.should == 1

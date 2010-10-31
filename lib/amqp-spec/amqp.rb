@@ -9,7 +9,7 @@ module AMQP
     @conn.callback(&block) if block
   end
 
-  # Closes AMQP connection and raises optional exception AFTER the AMQP connection is 100% closed
+  # Closes AMQP connection gracefully
   def self.stop_connection
     if AMQP.conn and not AMQP.closing
 #   MQ.reset ?
@@ -21,6 +21,7 @@ module AMQP
     end
   end
 
+  # Cleans up AMQP state after AMQP connection closes
   def self.cleanup_state
 #   MQ.reset ?
     Thread.current[:mq]    = nil
