@@ -1,7 +1,7 @@
 GEM
   remote: http://rubygems.org/
   specs:
-    amqp (0.6.7)
+    arvicco-amqp (0.6.8)
       eventmachine (>= 0.12.4)
     diff-lcs (1.1.2)
     eventmachine (0.12.11)
@@ -21,5 +21,5 @@ PLATFORMS
   x86-mingw32
 
 DEPENDENCIES
-  amqp
+  arvicco-amqp (~> 0.6.8)
   rspec (~> 2.0.0)

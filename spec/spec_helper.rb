@@ -2,7 +2,7 @@ $LOAD_PATH << "." unless $LOAD_PATH.include? "." # moronic 1.9.2 breaks things b
 
 require 'bundler'
 Bundler.setup
-Bundler.require :test
+Bundler.require :default, :test
 
 require 'yaml'
 require 'amqp-spec/rspec'
