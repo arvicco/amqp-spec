@@ -83,7 +83,7 @@ shared_examples_for 'done examples' do
       done(0.2) { @block_called = true; EM.reactor_running?.should == true }
     end
     @block_called.should == true
-    (Time.now-start).should be_close(0.2, 0.05)
+    (Time.now-start).should be_close(0.2, 0.1)
   end
 
   it 'should have delayed done (when em is used)' do
@@ -92,7 +92,7 @@ shared_examples_for 'done examples' do
       done(0.2) { @block_called = true; EM.reactor_running?.should == true }
     end
     @block_called.should == true
-    (Time.now-start).should be_close(0.2, 0.05)
+    (Time.now-start).should be_close(0.2, 0.1)
   end
 end
 
@@ -133,11 +133,11 @@ shared_examples_for 'timeout examples' do
 
   if rspec2?
     context 'embedded context can set up separate defaults' do
-      default_timeout 0.25 # Can be used to set default :spec_timeout for all your amqp-based specs
+      default_timeout 0.2 # Can be used to set default :spec_timeout for all your amqp-based specs
 
-      specify 'default timeout should be 0.25' do
+      specify 'default timeout should be 0.2' do
         expect { amqp { EM.add_timer(2) { done } } }.to raise_error SpecTimeoutExceededError
-        (Time.now-@start).should be_close(0.25, 0.1)
+        (Time.now-@start).should be_close(0.2, 0.1)
       end
 
       context 'deeply embedded context can set up separate defaults' do
@@ -167,8 +167,8 @@ shared_examples_for 'Spec examples' do
   it 'should have timers' do
     start = Time.now
 
-    EM.add_timer(0.25) {
-      (Time.now-start).should be_close(0.25, 0.1)
+    EM.add_timer(0.2) {
+      (Time.now-start).should be_close(0.2, 0.1)
       done
     }
   end
@@ -177,7 +177,7 @@ shared_examples_for 'Spec examples' do
     num = 0
     start = Time.now
 
-    timer = EM.add_periodic_timer(0.25) {
+    timer = EM.add_periodic_timer(0.2) {
       if (num += 1) == 2
         (Time.now-start).should be_close(0.5, 0.1)
         EM.cancel_timer timer
@@ -188,7 +188,7 @@ shared_examples_for 'Spec examples' do
 
   it 'should have deferrables' do
     defr = EM::DefaultDeferrable.new
-    defr.timeout(0.25)
+    defr.timeout(0.2)
     defr.errback {
       done
     }

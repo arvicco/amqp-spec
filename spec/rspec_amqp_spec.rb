@@ -6,7 +6,7 @@ def publish_and_consume_once(queue_name="test_sink", data="data")
     q.subscribe do |hdr, msg|
       hdr.should be_an MQ::Header
       msg.should == data
-      done {q.unsubscribe; q.delete}
+      done { q.unsubscribe; q.delete }
     end
     EM.add_timer(0.2) do
       MQ.queue(queue_name).publish data
@@ -25,7 +25,7 @@ describe 'Evented AMQP specs' do
     include AMQP::SpecHelper
 
     default_options AMQP_OPTS if defined? AMQP_OPTS
-    default_timeout 1 # Can be used to set default :spec_timeout for all your amqp-based specs
+    default_timeout 1
 
     puts "Default timeout: #{default_timeout}, Default options:"
     p default_options
@@ -40,15 +40,29 @@ describe 'Evented AMQP specs' do
 
   describe AMQP, " when testing with AMQP::Spec" do
     include AMQP::Spec
+
+    default_options AMQP_OPTS if defined? AMQP_OPTS
+    default_timeout 1
+
     it_should_behave_like 'Spec examples'
 
     context 'inside embedded context / example group' do
+      it 'should inherit default_options/metadata from enclosing example group' do
+        # This is a guard against regression on dev box without notice
+        AMQP.conn.instance_variable_get(:@settings)[:host].should == AMQP_OPTS[:host]
+        self.class.default_options[:host].should == AMQP_OPTS[:host]
+        self.class.default_timeout.should == 1
+        done
+      end
+
       it_should_behave_like 'Spec examples'
     end
   end
 
   describe AMQP, " tested with AMQP::SpecHelper when Rspec failures occur" do
     include AMQP::SpecHelper
+
+    default_options AMQP_OPTS if defined? AMQP_OPTS
 
     it "bubbles failing expectations up to Rspec" do
       expect {
@@ -76,6 +90,8 @@ describe 'Evented AMQP specs' do
 
   describe 'MQ', " when MQ.queue/fanout/topic tries to access Thread.current[:mq] across examples" do
     include AMQP::SpecHelper
+
+    default_options AMQP_OPTS if defined? AMQP_OPTS
 
     it 'sends data to the queue' do
       publish_and_consume_once

@@ -73,3 +73,7 @@
 == 0.2.5 / 2010-11-04
 
 * Minor Gemfile update
+
+== 0.2.6 / 2010-11-04
+
+* Fixed subtly failing specs
