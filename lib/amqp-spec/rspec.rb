@@ -81,11 +81,12 @@ module AMQP
         em_hooks[:after][scope] << block
       end
 
+      # Collection of evented hooks
       def em_hooks
         metadata[:em_hooks] ||= {
-          :around => { :each => [] },
-          :before => { :each => [], :all => [], :suite => [] },
-          :after => { :each => [], :all => [], :suite => [] }
+            :around => {:each => []},
+            :before => {:each => [], :all => [], :suite => []},
+            :after => {:each => [], :all => [], :suite => []}
         }
       end
 
@@ -194,6 +195,7 @@ module AMQP
     # Stops EM loop, executes optional block, finishes off fiber and raises exception if any
     #
     def finish_em_spec_fiber
+      self.class.em_hooks[:after][:each].reverse.each { |hook| instance_eval_with_rescue(&hook) }
       EM.stop_event_loop if EM.reactor_running?
       yield if block_given?
       @_em_spec_fiber.resume if @_em_spec_fiber.alive?
@@ -204,6 +206,11 @@ module AMQP
     #
     def run_em_spec_fiber spec_timeout, &block
       EM.run do
+        # Running em_before hooks
+#        puts "In EM.run: #{self}"
+#        p metadata[:example_group].keys
+        self.class.em_hooks[:before][:each].each { |hook| instance_eval(&hook) }
+
         @_em_spec_exception = nil
         timeout(spec_timeout) if spec_timeout
         @_em_spec_fiber = Fiber.new do

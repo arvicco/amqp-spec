@@ -10,10 +10,6 @@
 
 * Minimal functionality implemented
 
-== 0.0.3 / 2010-10-13
-
-* Bunch of non-working specs added
-
 == 0.0.4 / 2010-10-14
 
 * Problems with default_options resolved
@@ -30,21 +26,9 @@
 
 * Make sure Thread.current[:mq] state is cleaned after each example
 
-== 0.1.4 / 2010-10-15
-
-* Problematic tests all fixed
-
 == 0.1.7 / 2010-10-15
 
 * em interface improved for timeout arg
-
-== 0.1.8 / 2010-10-15
-
-* Add AMQP as a dependency
-
-== 0.1.9 / 2010-10-15
-
-* SpecHelper class methods refactored
 
 == 0.1.11 / 2010-10-18
 
@@ -54,29 +38,9 @@
 
 * Rspec 2 support added
 
-== 0.2.1 / 2010-10-28
-
-* RSpec2-specific examples added
-
 == 0.2.2 / 2010-10-31
 
 * Metadata in Rspec 1
-
-== 0.2.3 / 2010-10-31
-
-* Documentation cleaned up
-
-== 0.2.4 / 2010-11-01
-
-* Release
-
-== 0.2.5 / 2010-11-04
-
-* Minor Gemfile update
-
-== 0.2.6 / 2010-11-04
-
-* Fixed subtly failing specs
 
 == 0.2.7 / 2010-11-04
 

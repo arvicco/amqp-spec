@@ -27,8 +27,8 @@ describe 'Evented AMQP specs' do
     default_options AMQP_OPTS if defined? AMQP_OPTS
     default_timeout 1
 
-    puts "Default timeout: #{default_timeout}, Default options:"
-    p default_options
+    puts "Default timeout: #{default_timeout}"
+    puts "Default options :#{default_options}"
 
     it_should_behave_like 'SpecHelper examples'
 

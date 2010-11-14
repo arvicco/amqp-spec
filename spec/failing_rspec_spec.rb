@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe 'Following examples should all be failing:' do
+describe 'Following 8 examples should all be failing:' do
   describe EventMachine, " when running failing examples" do
     include AMQP::EMSpec
 
@@ -19,8 +19,6 @@ describe 'Following examples should all be failing:' do
   describe EventMachine, " when testing with AMQP::EMSpec with a maximum execution time per test" do
     include AMQP::EMSpec
 
-    # For RSpec 1, default_timeout and default_options are global
-    # For RSpec 2, default_timeout and default_options are example-group local, inheritable by nested groups
     default_timeout 1
 
     it 'should timeout before reaching done' do
@@ -37,8 +35,6 @@ describe 'Following examples should all be failing:' do
 
     include AMQP::Spec
 
-    # For RSpec 1, default_timeout and default_options are global
-    # For RSpec 2, default_timeout and default_options are example-group local, inheritable by nested groups
     default_timeout 1
 
     it 'should timeout before reaching done' do
