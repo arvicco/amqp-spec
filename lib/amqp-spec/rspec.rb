@@ -120,23 +120,10 @@ module AMQP
     #
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
+      spec_timeout  = opts.delete(:spec_timeout) || self.class.default_timeout
+      @_em_spec_with_amqp = true
       begin
-        EM.run do
-          @_em_spec_with_amqp = true
-          @_em_spec_exception = nil
-          spec_timeout        = opts.delete(:spec_timeout) || self.class.default_timeout
-          timeout(spec_timeout) if spec_timeout
-          @_em_spec_fiber     = Fiber.new do
-            begin
-              AMQP.start_connection opts, &block
-            rescue Exception => @_em_spec_exception
-              done
-            end
-            Fiber.yield
-          end
-
-          @_em_spec_fiber.resume
-        end
+        run_em_spec_fiber(spec_timeout) { AMQP.start_connection opts, &block }
       rescue Exception => outer_spec_exception
         # Make sure AMQP state is cleaned even after Rspec failures
         AMQP.cleanup_state
@@ -149,21 +136,8 @@ module AMQP
     #
     def em(spec_timeout = self.class.default_timeout, &block)
       spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
-      EM.run do
-        @_em_spec_with_amqp = false
-        @_em_spec_exception = nil
-        timeout(spec_timeout) if spec_timeout
-        @_em_spec_fiber     = Fiber.new do
-          begin
-            block.call
-          rescue Exception => @_em_spec_exception
-            done
-          end
-          Fiber.yield
-        end
-
-        @_em_spec_fiber.resume
-      end
+      @_em_spec_with_amqp = false
+      run_em_spec_fiber spec_timeout, &block
     end
 
     # Sets timeout for current running example
@@ -224,6 +198,24 @@ module AMQP
       yield if block_given?
       @_em_spec_fiber.resume if @_em_spec_fiber.alive?
       raise @_em_spec_exception if @_em_spec_exception
+    end
+
+    # Runs given block inside separate EM event-loop fiber
+    #
+    def run_em_spec_fiber spec_timeout, &block
+      EM.run do
+        @_em_spec_exception = nil
+        timeout(spec_timeout) if spec_timeout
+        @_em_spec_fiber = Fiber.new do
+          begin
+            block.call
+          rescue Exception => @_em_spec_exception
+            done
+          end
+          Fiber.yield
+        end
+        @_em_spec_fiber.resume
+      end
     end
   end
 
