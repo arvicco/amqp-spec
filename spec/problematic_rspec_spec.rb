@@ -28,7 +28,7 @@ describe '!!!!!!!!! LEAKING OR PROBLEMATIC EXAMPLES !!!!!!!!!' do
         end
       end
 
-      context 'for evented specs' do
+      context 'for evented specs', pending: true do
         after { @last.should == :em_after }
 
         it 'should execute em_before or em_after if em block is used' do

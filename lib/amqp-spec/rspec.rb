@@ -68,6 +68,34 @@ module AMQP
         metadata[:em_default_options] = opts if opts
         metadata[:em_default_options]
       end
+
+      # before hook that will run inside EM event loop
+      def em_before *args, &block
+        scope, options = scope_and_options_from(*args)
+        em_hooks[:before][scope] << block
+      end
+
+      # after hook that will run inside EM event loop
+      def em_after *args, &block
+        scope, options = scope_and_options_from(*args)
+        em_hooks[:after][scope] << block
+      end
+
+      def em_hooks
+        metadata[:em_hooks] ||= {
+          :around => { :each => [] },
+          :before => { :each => [], :all => [], :suite => [] },
+          :after => { :each => [], :all => [], :suite => [] }
+        }
+      end
+
+      def scope_and_options_from(scope=:each, options={})
+        if Hash === scope
+          options = scope
+          scope = :each
+        end
+        return scope, options
+      end
     end
 
     def self.included(example_group)
