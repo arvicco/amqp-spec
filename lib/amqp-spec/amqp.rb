@@ -24,9 +24,9 @@ module AMQP
   # Cleans up AMQP state after AMQP connection closes
   def self.cleanup_state
 #   MQ.reset ?
-    Thread.list.each {|thread| thread[:mq] = nil }
-    Thread.list.each {|thread| thread[:mq_id] = nil }
-    @conn                  = nil
-    @closing               = false
+    Thread.list.each { |thread| thread[:mq] = nil }
+    Thread.list.each { |thread| thread[:mq_id] = nil }
+    @conn    = nil
+    @closing = false
   end
 end
