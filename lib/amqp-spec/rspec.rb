@@ -32,7 +32,8 @@ module AMQP
   # method, you can use #em method - it creates plain EM.run loop without starting AMQP.
   #
   # TODO: Define 'async' method wrapping async requests and returning results... 'async_loop' too for subscribe block?
-  # TODO: 'evented_before', 'evented_after' that will be run inside EM before the example
+  # TODO: 'em_before', 'em_after' that will be run inside EM before/after each example
+  # TODO: 'amqp_before', 'amqp_after' that will be run inside AMQP.start loop before/after the example
   #
   # noinspection RubyArgCount
   module SpecHelper
