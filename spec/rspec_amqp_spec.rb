@@ -1,4 +1,4 @@
-require_relative 'spec_helper.rb'
+require 'spec_helper'
 
 def publish_and_consume_once(queue_name="test_sink", data="data")
   amqp do

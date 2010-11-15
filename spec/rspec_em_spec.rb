@@ -1,4 +1,4 @@
-require_relative 'spec_helper.rb'
+require 'spec_helper'
 
 describe 'Plain EM, no AMQP' do
   describe EventMachine, " when testing with AMQP::SpecHelper" do

@@ -52,6 +52,12 @@ describe '!!!!!!!!! LEAKING OR PROBLEMATIC EXAMPLES !!!!!!!!!' do
               em { :this.should == :fail }
             }.to raise_error RSPEC::Expectations::ExpectationNotMetError
           end
+
+          context 'inside nested example group' do
+            it 'should fire all nested :before hooks'
+            it 'should fire all nested :after hooks'
+          end
+
         end
 
         context 'with amqp block' do
@@ -71,6 +77,12 @@ describe '!!!!!!!!! LEAKING OR PROBLEMATIC EXAMPLES !!!!!!!!!' do
               amqp { :this.should == :fail }
             }.to raise_error RSPEC::Expectations::ExpectationNotMetError
           end
+
+          context 'inside nested example group' do
+            it 'should fire all nested :before hooks'
+            it 'should fire all nested :after hooks'
+          end
+
         end
       end
     end

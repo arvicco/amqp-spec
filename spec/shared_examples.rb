@@ -47,6 +47,7 @@ shared_examples_for 'SpecHelper examples' do
     AMQP.conn.should be_nil
   end
 
+  # TODO: remove dependency on (possibly long) DNS lookup
   it "should gracefully exit if no AMQP connection was made" do
     expect {
       amqp(:host => 'Impossible') do
