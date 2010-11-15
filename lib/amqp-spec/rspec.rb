@@ -124,7 +124,7 @@ module AMQP
       spec_timeout  = opts.delete(:spec_timeout) || self.class.default_timeout
       @_em_spec_with_amqp = true
       begin
-        run_em_spec_fiber(spec_timeout) { AMQP.start_connection opts, &block }
+        run_em_spec_fiber spec_timeout, AMQP.method(:start_connection), opts, &block
       rescue Exception => outer_spec_exception
         # Make sure AMQP state is cleaned even after Rspec failures
 #        puts "In amqp, caught '#{outer_spec_exception}', @_em_spec_exception: '#{@_em_spec_exception}'"
@@ -191,20 +191,25 @@ module AMQP
       @metadata ||= self.class.metadata.dup rescue {}
     end
 
-    # Wraps async action into synchronous method call
+    # Wraps async method with a callback into a synchronous method call
+    # that returns only after callback finished (or exception raised)
     #
-    def sync(*args, &callback)
+    def sync *args, &callback
+      raise ArgumentError,'Sync method expects callback block' unless callback
       method = case args.first
                  when Symbol, String
                    method(args.shift)
-                 when Method
+                 when Method, Proc
                    args.shift
+                 when nil
+                   raise ArgumentError,'Sync method expects async callable (possibly with args)'
                  else
                    args.shift.method(args.shift)
                end
       fiber = Fiber.current
       method.call(*args) do |*returns|
-        fiber.resume callback.call *returns
+        p "Was executed!"
+        fiber.resume callback.call(*returns)
       end
       Fiber.yield
     end
