@@ -123,6 +123,15 @@ module AMQP
       @evented_example.run
     end
 
+    # Breaks the event loop and finishes the spec. This should be called after
+    # you are reasonably sure that your expectations either succeeded or failed.
+    # Done yields to any given block first, then stops EM event loop.
+    # For amqp specs, stops AMQP and cleans up AMQP state.
+    #
+    # You may pass delay (in seconds) to done. If you do so, please keep in mind
+    # that your (default or explicit) spec timeout may fire before your delayed done
+    # callback is due, leading to SpecTimeoutExceededError
+    #
     def done *args, &block
       @evented_example.done *args, &block
     end
