@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe '!!!!!!!!! LEAKING OR PROBLEMATIC EXAMPLES !!!!!!!!!' do
-  describe AMQP, " with em_before/em_after", pending: true do
+  describe AMQP, " with em_before/em_after" do
     before { @hooks_called = [] } #; puts "In before: #{self}"}  #
 
     describe AMQP, " tested with AMQP::SpecHelper" do

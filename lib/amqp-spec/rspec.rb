@@ -1,4 +1,4 @@
-require 'fiber' unless Fiber.respond_to?(:current)
+#require 'fiber' unless Fiber.respond_to?(:current)
 require 'amqp-spec/amqp'
 
 # You can include one of the following modules into your example groups:
@@ -122,8 +122,7 @@ module AMQP
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
       spec_timeout  = opts.delete(:spec_timeout) || self.class.default_timeout
-      hooks = self.class.em_hooks
-      @event_loop = EventLoop.new(:amqp, opts, spec_timeout, hooks, &block)
+      @event_loop = EventLoop.new(:amqp, opts, spec_timeout, self, &block)
       @event_loop.run
     end
 
@@ -133,7 +132,7 @@ module AMQP
     def em(spec_timeout = self.class.default_timeout, &block)
       spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
       hooks = self.class.em_hooks
-      @event_loop = EventLoop.new(:em, spec_timeout, hooks, &block)
+      @event_loop = EventLoop.new(:em, spec_timeout, self, &block)
       @event_loop.run
     end
 
@@ -152,24 +151,22 @@ module AMQP
     # Represents any type of spec supposed to run inside event loop
     class EventLoop
 
-      def initialize type, opts = {}, spec_timeout, hooks, &block
-        @type, @opts, @spec_timeout, @hooks, @block = type, opts, spec_timeout, hooks, block
+      def initialize type, opts = {}, spec_timeout, example_group_instance, &block
+        @type, @opts, @spec_timeout, @example_group_instance, @block = type, opts, spec_timeout, example_group_instance, block
       end
 
       def run
         if @type = :amqp
           @_em_spec_with_amqp = true
           begin
-            run_em_spec_fiber @spec_timeout, @opts, &@block
+            run_em_loop @spec_timeout, @opts, &@block
           rescue Exception => outer_spec_exception
-            # Make sure AMQP state is cleaned even after Rspec failures
-#        puts "In amqp, caught '#{outer_spec_exception}', @_em_spec_exception: '#{@_em_spec_exception}'"
             AMQP.cleanup_state
             raise outer_spec_exception
           end
-        else
+        elsif @type = :em
           @_em_spec_with_amqp = false
-          run_em_spec_fiber @spec_timeout, &@block
+          run_em_loop @spec_timeout, &@block
         end
       end
 
@@ -178,7 +175,7 @@ module AMQP
       def timeout(spec_timeout)
         EM.cancel_timer(@_em_timer) if @_em_timer
         @_em_timer = EM.add_timer(spec_timeout) do
-          @_em_spec_exception = SpecTimeoutExceededError.new
+          @_em_spec_exception = SpecTimeoutExceededError.new "Spec timed out"
           done
         end
       end
@@ -199,13 +196,13 @@ module AMQP
             if @_em_spec_with_amqp
               if AMQP.conn and not AMQP.closing
                 AMQP.stop_connection do
-                  finish_em_spec_fiber { AMQP.cleanup_state }
+                  finish_em_loop { AMQP.cleanup_state }
                 end
               else
-                finish_em_spec_fiber { AMQP.cleanup_state }
+                finish_em_loop { AMQP.cleanup_state }
               end
             else
-              finish_em_spec_fiber
+              finish_em_loop
             end
           end
         end
@@ -266,44 +263,39 @@ module AMQP
 
       # Stops EM loop, executes optional block, finishes off fiber and raises exception if any
       #
-      def finish_em_spec_fiber
-@hooks[:after][:each].reverse.each { |hook| instance_eval_with_rescue(&hook) }
+      def finish_em_loop
+        run_after_hooks
         EM.stop_event_loop if EM.reactor_running?
         yield if block_given?
-        @_em_spec_fiber.resume if @_em_spec_fiber.alive?
         raise @_em_spec_exception if @_em_spec_exception
+      end
+
+      def run_after_hooks
+        @example_group_instance.class.em_hooks[:after][:each].reverse.each do |hook|
+          @example_group_instance.instance_eval(&hook) #_with_rescue(&hook)
+        end
       end
 
       # Runs given block inside separate EM event-loop fiber
       #
-      # TODO: difference between #em and #amqp is in following: in line 221,
-      # TODO: block is EXECUTED for #em, but only added as callback for #amqp.
-      # TODO: therefore, fiber ends for amqp before block's execution even started
-      #
-      # TODO: probably, this can be corrected by introducing another fiber,
-      # TODO: this time wrapping AMQP.start async action... #syncronize, anyone?
-      #
-      def run_em_spec_fiber spec_timeout, opts = {}, &block
+      def run_em_loop spec_timeout, opts = {}, &block
         EM.run do
           # Running em_before hooks
-          @hooks[:before][:each].each { |hook| instance_eval(&hook) }
+          @example_group_instance.class.em_hooks[:before][:each].each do |hook|
+            @example_group_instance.instance_eval(&hook)
+          end
 
           @_em_spec_exception = nil
           timeout(spec_timeout) if spec_timeout
-          @_em_spec_fiber = Fiber.new do
-            begin
-              if @_em_spec_with_amqp
-                sync AMQP.method(:start_connection), opts, &block
-              else
-                block.call
-              end
-            rescue Exception => @_em_spec_exception
-#            puts "In inner run_em_spec_fiber, caught '#{@_em_spec_exception}'"
-              done
+          begin
+            if @_em_spec_with_amqp
+              AMQP.start_connection opts, &block
+            else
+              block.call
             end
-            Fiber.yield
+          rescue Exception => @_em_spec_exception
+            done #{raise @_em_spec_exception }
           end
-          @_em_spec_fiber.resume
         end
       end
 
