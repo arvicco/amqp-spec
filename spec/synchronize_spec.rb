@@ -33,7 +33,7 @@ describe AMQP::SpecHelper::EventLoop, pending: true do
       end
     end
 
-    it 'even accepts a Proc, just make sure that this proc treats given callback correctly' do
+    it 'even accepts a Proc, just make sure this proc treats given callback correctly' do
       em do
         start = Time.now
         my_proc = proc { |time, &block| done(time, &block) }

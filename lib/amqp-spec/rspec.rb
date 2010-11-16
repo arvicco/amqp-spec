@@ -1,4 +1,4 @@
-#require 'fiber' unless Fiber.respond_to?(:current)
+require 'fiber' unless Fiber.respond_to?(:current)
 require 'amqp-spec/amqp'
 
 # You can include one of the following modules into your example groups:
@@ -6,48 +6,45 @@ require 'amqp-spec/amqp'
 # AMQP::Spec,
 # AMQP::EMSpec.
 #
-# AMQP::SpecHelper module defines #ampq method that can be safely used inside your specs(examples)
-# to test expectations inside running AMQP.start loop. Each loop is running in a separate Fiber,
-# and you can control for timeouts using either :spec_timeout option given to #amqp method,
-# or setting default timeout with class method default_timeout(timeout). In addition to #amqp
-# method, you can use #em method - it creates plain EM.run loop without starting AMQP.
+# AMQP::SpecHelper module defines #ampq method that can be safely used inside your
+# specs(examples) to test expectations inside running AMQP.start loop. Each loop is running
+# in a separate Fiber, and you can control for timeouts using either :spec_timeout option
+# given to #amqp method, or setting default timeout with class method default_timeout
+# (timeout). In addition to #amqp method, you can use #em method - it creates plain EM.run
+# loop without starting AMQP.
 #
-# If you include AMQP::Spec module into your example group, each example of this group will run
-# inside AMQP.start loop without the need to explicitly call 'amqp'. In order to provide options
-# to AMQP loop, default_options class method is defined. Remember, when using AMQP::Specs, you
-# will have a single set of AMQP.start options for all your examples.
+# If you include AMQP::Spec module into your example group, each example of this group
+# will run inside AMQP.start loop without the need to explicitly call 'amqp'. In order to
+# provide options to AMQP loop, default_options({opts}) macro is defined.
 #
 # Including AMQP::EMSpec module into your example group, each example of this group will run
 # inside EM.run loop without the need to explicitly call 'em'.
 #
-# In order to stop AMQP/EM loop, you should call 'done' AFTER you are sure that your example is finished.
-# For example, if you are using subscribe block that tests expectations on messages, 'done' should be
-# probably called at the end of this block.
+# In order to stop AMQP/EM loop, you should call 'done' AFTER you are sure that your
+# example is finished and your expectations executed. For example if you are using
+# subscribe block that tests expectations on messages, 'done' should be probably called
+# at the end of this block.
 #
-#noinspection ALL
 module AMQP
-  # AMQP::SpecHelper module defines #ampq method that can be safely used inside your specs(examples)
-  # to test expectations inside running AMQP.start loop. Each loop is running in a separate Fiber,
-  # and you can control for timeouts using either :spec_timeout option given to #amqp method,
-  # or setting default timeout with class method default_timeout(timeout). In addition to #amqp
-  # method, you can use #em method - it creates plain EM.run loop without starting AMQP.
+  # AMQP::SpecHelper module defines #ampq and #em methods that can be safely used inside
+  # your specs (examples) to test code running inside AMQP.start or EM.run loop
+  # respectively. Each example is running in a separate event loop,you can control
+  # for timeouts either with :spec_timeout option given to #amqp/#em method or setting
+  # a default timeout using default_timeout(timeout) macro inside describe/context block.
   #
-  # TODO: Define 'async' method wrapping async requests and returning results... 'async_loop' too for subscribe block?
-  # TODO: 'em_before', 'em_after' that will be run inside EM before/after each example
-  # TODO: 'amqp_before', 'amqp_after' that will be run inside AMQP.start loop before/after the example
   #
   # noinspection RubyArgCount
   module SpecHelper
 
     SpecTimeoutExceededError = Class.new(RuntimeError)
 
-    # Class methods (macros) for example group that includes SpecHelper
+    # Class methods (macros) for example groups that includes SpecHelper.
+    # You can use these methods as macros inside describe/context block.
     #
     module GroupMethods
       unless respond_to?(:metadata)
-        # Hacking in metadata into RSpec1 to imitate Rspec2's metadata.
-        # You can add to metadata Hash to pass options into examples and
-        # nested groups.
+        # Hacking in metadata into RSpec1 to imitate Rspec2's metadata. Now you can add
+        # anything to metadata Hash to pass options into examples and nested groups.
         #
         def metadata
           @metadata ||= superclass.metadata.dup rescue {}
@@ -70,13 +67,13 @@ module AMQP
         metadata[:em_default_options]
       end
 
-      # before hook that will run inside EM event loop
+      # Add before hook that will run inside EM event loop
       def em_before scope = :each, &block
         raise ArgumentError, "em_before only supports :each scope" unless :each == scope
         em_hooks[:before] << block
       end
 
-      # after hook that will run inside EM event loop
+      # Add after hook that will run inside EM event loop
       def em_after scope = :each, &block
         raise ArgumentError, "em_after only supports :each scope" unless :each == scope
         em_hooks[:after] << block
@@ -84,7 +81,7 @@ module AMQP
 
       # Collection of evented hooks
       def em_hooks
-        metadata[:em_hooks] ||= { :before => [], :after => []  }
+        metadata[:em_hooks] ||= {:before => [], :after => []}
       end
     end
 
@@ -96,16 +93,17 @@ module AMQP
       end
     end
 
-    # Yields to given block inside EM.run and AMQP.start loops. This method takes any option that is
-    # also accepted by EventMachine::connect. Also, options for AMQP.start include:
-    # * :user => String (default ‘guest’) - The username as defined by the AMQP server.
-    # * :pass => String (default ‘guest’) - The password for the associated :user as defined by the AMQP server.
-    # * :vhost => String (default ’/’)    - The virtual host as defined by the AMQP server.
+    # Yields to a given block inside EM.run and AMQP.start loops. This method takes
+    # any option that is accepted by EventMachine::connect. Options for AMQP.start include:
+    # * :user => String (default ‘guest’) - Username as defined by the AMQP server.
+    # * :pass => String (default ‘guest’) - Password as defined by the AMQP server.
+    # * :vhost => String (default ’/’)    - Virtual host as defined by the AMQP server.
     # * :timeout => Numeric (default nil) - *Connection* timeout, measured in seconds.
-    # * :logging => true | false (default false) - Toggle the extremely verbose AMQP logging.
+    # * :logging => Bool (default false) - Toggle the extremely verbose AMQP logging.
     #
-    # In addition to EM and AMQP options, :spec_timeout option (in seconds) is used to force spec to timeout
-    # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
+    # In addition to EM and AMQP options, :spec_timeout option (in seconds) is used
+    # to force spec to timeout if something goes wrong and EM/AMQP loop hangs for some
+    # reason. SpecTimeoutExceededError is raised if it happens.
     #
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
@@ -114,8 +112,9 @@ module AMQP
       @event_loop.run
     end
 
-    # Yields to block inside EM loop, :spec_timeout option (in seconds) is used to force spec to timeout
-    # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
+    # Yields to block inside EM loop, :spec_timeout option (in seconds) is used to
+    # force spec to timeout if something goes wrong and EM/AMQP loop hangs for some
+    # reason. SpecTimeoutExceededError is raised if it happens.
     #
     def em(spec_timeout = self.class.default_timeout, &block)
       spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
@@ -139,10 +138,12 @@ module AMQP
     # Represents any type of spec supposed to run inside event loop
     class EventLoop
 
+      # Create new event loop
       def initialize type, opts = {}, spec_timeout, example_group_instance, &block
         @type, @opts, @spec_timeout, @example_group_instance, @block = type, opts, spec_timeout, example_group_instance, block
       end
 
+      # Run @block inside the event loop
       def run
         if @type = :amqp
           @_em_spec_with_amqp = true
@@ -210,12 +211,13 @@ module AMQP
       # Wraps async method with a callback into a synchronous method call
       # that returns only after callback is finished (or exception raised)
       #
+      # TODO: Only works in fibered environment, such as Thin
       # TODO: should we add exception processing here?
       # TODO: what do we do in case if errback fires instead of callback?
       # TODO: it may happen that callback is never called, and no exception raised either...
       #
       def sync *args, &callback
-        args, callable = callable_from *args, &callback
+        callable, args = callable_from *args, &callback
         fiber = Fiber.current
         callable.call(*args) do |*returns|
           fiber.resume callback.call(*returns)
@@ -231,22 +233,21 @@ module AMQP
       # Used to extract async callable from given arguments
       def callable_from *args, &callback
         raise ArgumentError, 'Sync method expects callback block' unless callback
-        callable = case args.first
-                     when Method, Proc
-                       args.shift
-                     when nil
-                       raise ArgumentError, 'Sync method expects async callable (possibly with args)'
-                     when Symbol, String
-                       method_name = args.shift
-                       raise ArgumentError, "Wrong method name #{method_name}" unless respond_to? method_name
-                       method(method_name)
-                     else
-                       object = args.shift
-                       method_name = args.shift
-                       raise ArgumentError, "Wrong method name #{method_name}" unless object.respond_to? method_name
-                       object.method(method_name)
-                   end
-        [args, callable]
+        return case args.first
+                 when Method, Proc
+                   args.shift
+                 when nil
+                   raise ArgumentError, 'Expects async callable (possibly with args)'
+                 when Symbol, String
+                   method_name = args.shift
+                   raise ArgumentError, "Wrong method name #{method_name}" unless respond_to? method_name
+                   method(method_name)
+                 else
+                   object = args.shift
+                   method_name = args.shift
+                   raise ArgumentError, "Wrong method name #{method_name}" unless object.respond_to? method_name
+                   object.method(method_name)
+               end, args
       end
 
       # Stops EM loop, executes optional block, finishes off fiber and raises exception if any
@@ -303,17 +304,18 @@ module AMQP
 
     end
 
-# Represents spec running inside AMQP.run loop
+    # Represents spec running inside AMQP.run loop
     class AMQPLoop < EventLoop
 
     end
   end # module SpecHelper
 
-# If you include AMQP::Spec module into your example group, each example of this group will run
-# inside AMQP.start loop without the need to explicitly call 'amqp'. In order to provide options
-# to AMQP loop, default_options class method is defined. Remember, when using AMQP::Specs, you
-# will have a single set of AMQP.start options for all your examples.
-#
+  # If you include AMQP::Spec module into your example group, each example of this group
+  # will run inside AMQP.start loop without the need to explicitly call 'amqp'. In order
+  # to provide options to AMQP loop, default_options class method is defined. Remember,
+  # when using AMQP::Specs, you'll have a single set of AMQP.start options for all your
+  # examples.
+  #
   module Spec
     def self.included(example_group)
       example_group.send(:include, SpecHelper)
@@ -328,9 +330,9 @@ module AMQP
     end
   end
 
-# Including AMQP::EMSpec module into your example group, each example of this group will run
-# inside EM.run loop without the need to explicitly call 'em'.
-#
+  # Including AMQP::EMSpec module into your example group, each example of this group
+  # will run inside EM.run loop without the need to explicitly call 'em'.
+  #
   module EMSpec
     def self.included(example_group)
       example_group.send(:include, SpecHelper)
