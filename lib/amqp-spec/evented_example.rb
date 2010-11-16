@@ -46,49 +46,6 @@ module AMQP
         @metadata ||= @example_group_instance.metadata.dup rescue {}
       end
 
-      # Wraps async method with a callback into a synchronous method call
-      # that returns only after callback is finished (or exception raised)
-      #
-      # TODO: Only works in fibered environment, such as Thin
-      # TODO: should we add exception processing here?
-      # TODO: what do we do in case if errback fires instead of callback?
-      # TODO: it may happen that callback is never called, and no exception raised either...
-      #
-      #noinspection RubyArgCount
-      def sync *args, &callback
-        callable, args = callable_from *args, &callback
-        fiber = Fiber.current
-        callable.call(*args) do |*returns|
-          fiber.resume callback.call(*returns)
-        end
-
-        Fiber.yield
-      end
-
-      alias synchronize sync
-
-      private
-
-      # Used to extract async callable from given arguments
-      def callable_from *args, &callback
-        raise ArgumentError, 'Sync method expects callback block' unless callback
-        return case args.first
-                 when Method, Proc
-                   args.shift
-                 when nil
-                   raise ArgumentError, 'Expects async callable (possibly with args)'
-                 when Symbol, String
-                   method_name = args.shift
-                   raise ArgumentError, "Wrong method name #{method_name}" unless respond_to? method_name
-                   method(method_name)
-                 else
-                   object = args.shift
-                   method_name = args.shift
-                   raise ArgumentError, "Wrong method name #{method_name}" unless object.respond_to? method_name
-                   object.method(method_name)
-               end, args
-      end
-
       # Runs hooks of specified type (hopefully, inside the event loop)
       #
       def run_hooks type

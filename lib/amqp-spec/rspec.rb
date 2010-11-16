@@ -140,10 +140,6 @@ module AMQP
       @evented_example.timeout *args
     end
 
-    def sync *args, &block
-      @evented_example.sync *args, &block
-    end
-
   end # module SpecHelper
 
   # If you include AMQP::Spec module into your example group, each example of this group
