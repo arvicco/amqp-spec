@@ -1,18 +1,13 @@
 require 'fiber' unless Fiber.respond_to?(:current)
 
 module AMQP
-  # AMQP::SpecHelper module defines #ampq and #em methods that can be safely used inside
-  # your specs (examples) to test code running inside AMQP.start or EM.run loop
-  # respectively. Each example is running in a separate event loop,you can control
-  # for timeouts either with :spec_timeout option given to #amqp/#em method or setting
-  # a default timeout using default_timeout(timeout) macro inside describe/context block.
-  #
-  #
+
   module SpecHelper
 
-    # Represents any type of spec supposed to run inside event loop
+    # Represents example running inside some type of event loop
     class EventedExample
-      # Create new event loop
+
+      # Create new evented example
       def initialize opts = {}, example_group_instance, &block
         @opts, @example_group_instance, @block = opts, example_group_instance, block
       end
@@ -27,8 +22,7 @@ module AMQP
         end
       end
 
-      # Breaks the event loop and finishes the spec. This should be called after
-      # you are reasonably sure that your expectations either succeeded or failed.
+      # Breaks the event loop and finishes the spec.
       #
       # This is under-implemented (generic) method that only implements optional delay.
       # It should be given a block that does actual work of finishing up the event loop
@@ -63,7 +57,9 @@ module AMQP
         end
       end
 
-      # Runs given block inside separate EM event-loop fiber
+      # Runs given block inside EM event loop.
+      # Double-round exception handler needed because some of the exceptions bubble
+      # outside of event loop due to asynchronous nature of evented examples
       #
       def run_em_loop
         begin
@@ -94,16 +90,14 @@ module AMQP
         EM.stop_event_loop if EM.reactor_running?
       end
 
-      # Called from run_event_loop when event loop is finished, before any exceptions
-      # is raised or example returns.
-      #
+      # Called from #run_event_loop when event loop is stopped, but before example returns.
       # Descendant classes may redefine to clean up type-specific state.
       #
       def finish_example
         raise @spec_exception if @spec_exception
       end
 
-    end # class EventedLoop
+    end # class EventedExample
 
     # Represents spec running inside AMQP.run loop
     class EMExample < EventedExample
@@ -124,7 +118,6 @@ module AMQP
           end
         end
       end # done
-
     end # class EMExample < EventedExample
 
     # Represents spec running inside AMQP.run loop

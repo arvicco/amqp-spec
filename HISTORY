@@ -53,3 +53,7 @@
 == 0.2.9 / 2010-11-16
 
 * Fallback to a separate default timeout
+
+== 0.3.0 / 2010-11-16
+
+* Hooks em_before/em_after implemented

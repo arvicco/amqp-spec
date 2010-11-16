@@ -6,12 +6,11 @@ require 'amqp-spec/evented_example'
 # AMQP::Spec,
 # AMQP::EMSpec.
 #
-# AMQP::SpecHelper module defines #ampq method that can be safely used inside your
-# specs(examples) to test expectations inside running AMQP.start loop. Each loop is running
-# in a separate Fiber, and you can control for timeouts using either :spec_timeout option
-# given to #amqp method, or setting default timeout with class method default_timeout
-# (timeout). In addition to #amqp method, you can use #em method - it creates plain EM.run
-# loop without starting AMQP.
+# AMQP::SpecHelper module defines #ampq and #em methods that can be safely used inside
+# your specs (examples) to test code running inside AMQP.start or EM.run loop
+# respectively. Each example is running in a separate event loop,you can control
+# for timeouts either with :spec_timeout option given to #amqp/#em method or setting
+# a default timeout using default_timeout(timeout) macro inside describe/context block.
 #
 # If you include AMQP::Spec module into your example group, each example of this group
 # will run inside AMQP.start loop without the need to explicitly call 'amqp'. In order to
@@ -26,19 +25,19 @@ require 'amqp-spec/evented_example'
 # at the end of this block.
 #
 module AMQP
+
   # AMQP::SpecHelper module defines #ampq and #em methods that can be safely used inside
   # your specs (examples) to test code running inside AMQP.start or EM.run loop
   # respectively. Each example is running in a separate event loop,you can control
   # for timeouts either with :spec_timeout option given to #amqp/#em method or setting
   # a default timeout using default_timeout(timeout) macro inside describe/context block.
   #
-  #
   # noinspection RubyArgCount
   module SpecHelper
 
     SpecTimeoutExceededError = Class.new(RuntimeError)
 
-    # Class methods (macros) for example groups that includes SpecHelper.
+    # Class methods (macros) for any example groups that includes SpecHelper.
     # You can use these methods as macros inside describe/context block.
     #
     module GroupMethods
