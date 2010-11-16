@@ -53,27 +53,6 @@ describe AMQP::SpecHelper do
       end
     end
 
-    it 'complains if you omit a block' do
-      expect {
-        em do
-          start = Time.now
-          sync(:done, 0.2)
-          @fired.should be_false
-        end
-      }.to raise_error ArgumentError
-    end
-
-    it 'complains if you just give it a callback' do
-      expect {
-        em do
-          start = Time.now
-          sync { done(0.2) { @fired = true } }
-          (Time.now - start).should be_close 0.2, 0.05
-          @fired.should be_true
-        end
-      }.to raise_error ArgumentError
-    end
-
     it 'recognizes #synchronize alias' do
       em do
         start = Time.now
@@ -83,5 +62,63 @@ describe AMQP::SpecHelper do
       end
     end
 
-  end
+    context 'argument errors' do
+      it 'complains if you omit a callback' do
+        em do
+          expect { sync(:done, 0.2) }.to raise_error ArgumentError
+          done
+        end
+      end
+
+      it 'complains if you just give it a callback, without callable' do
+        em do
+          expect { sync { @fired = true } }.to raise_error ArgumentError
+          @fired.should be_false
+          done
+        end
+      end
+
+      it 'complains if you give it a wrong method name' do
+        em do
+          expect { sync(:zdone) { @fired = true } }.to raise_error ArgumentError
+          @fired.should be_false
+          done
+        end
+      end
+
+      it 'complains if you give it a wrong callable' do
+        em do
+          expect { sync(Object.new, :done) { @fired = true } }.to raise_error ArgumentError
+          @fired.should be_false
+          done
+        end
+      end
+    end # context argument errors
+
+    context 'exceptions' do
+
+      it 'bubbles up exceptions raised inside the callback' do
+        em do
+          start = Time.now
+          expect {
+            sync(:done, 0.2) { raise StandardError, "Blah" }
+          }.to raise_error /Blah/
+
+          (Time.now - start).should be_close 0.2, 0.05
+        end
+      end
+
+      it 'bubbles up exceptions raised before callback is executed' do
+        em do
+          expect {
+            sync(AMQP.method(:start_connection), host: 'Wrong') { @fired = true }
+          }.to raise_error EventMachine::ConnectionError
+          @fired.should be_false
+          done
+        end
+      end
+    end # context 'exceptions'
+
+    context 'timeouts'
+  end # describe "#synchronize"
 end

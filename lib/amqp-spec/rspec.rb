@@ -24,6 +24,7 @@ require 'amqp-spec/amqp'
 # For example, if you are using subscribe block that tests expectations on messages, 'done' should be
 # probably called at the end of this block.
 #
+#noinspection ALL
 module AMQP
   # AMQP::SpecHelper module defines #ampq method that can be safely used inside your specs(examples)
   # to test expectations inside running AMQP.start loop. Each loop is running in a separate Fiber,
@@ -124,7 +125,7 @@ module AMQP
       spec_timeout  = opts.delete(:spec_timeout) || self.class.default_timeout
       @_em_spec_with_amqp = true
       begin
-        run_em_spec_fiber spec_timeout, AMQP.method(:start_connection), opts, &block
+        run_em_spec_fiber spec_timeout, opts, &block
       rescue Exception => outer_spec_exception
         # Make sure AMQP state is cleaned even after Rspec failures
 #        puts "In amqp, caught '#{outer_spec_exception}', @_em_spec_exception: '#{@_em_spec_exception}'"
@@ -192,30 +193,46 @@ module AMQP
     end
 
     # Wraps async method with a callback into a synchronous method call
-    # that returns only after callback finished (or exception raised)
+    # that returns only after callback is finished (or exception raised)
+    #
+    # TODO: should we add exception processing here?
+    # TODO: what do we do in case if errback fires instead of callback?
+    # TODO: it may happen that callback is never called, and no exception raised either...
     #
     def sync *args, &callback
-      raise ArgumentError,'Sync method expects callback block' unless callback
-      method = case args.first
-                 when Symbol, String
-                   method(args.shift)
-                 when Method, Proc
-                   args.shift
-                 when nil
-                   raise ArgumentError,'Sync method expects async callable (possibly with args)'
-                 else
-                   args.shift.method(args.shift)
-               end
+      args, callable = callable_from *args, &callback
       fiber = Fiber.current
-      method.call(*args) do |*returns|
-        p "Was executed!"
+      callable.call(*args) do |*returns|
         fiber.resume callback.call(*returns)
       end
+
       Fiber.yield
     end
+
     alias synchronize sync
 
     private
+
+    # Used to extract async callable from given arguments
+    def callable_from *args, &callback
+      raise ArgumentError, 'Sync method expects callback block' unless callback
+      callable = case args.first
+                   when Method, Proc
+                     args.shift
+                   when nil
+                     raise ArgumentError, 'Sync method expects async callable (possibly with args)'
+                   when Symbol, String
+                     method_name = args.shift
+                     raise ArgumentError, "Wrong method name #{method_name}" unless respond_to? method_name
+                     method(method_name)
+                   else
+                     object = args.shift
+                     method_name = args.shift
+                     raise ArgumentError, "Wrong method name #{method_name}" unless object.respond_to? method_name
+                     object.method(method_name)
+                 end
+      [args, callable]
+    end
 
     # Stops EM loop, executes optional block, finishes off fiber and raises exception if any
     #
@@ -236,7 +253,7 @@ module AMQP
     # TODO: probably, this can be corrected by introducing another fiber,
     # TODO: this time wrapping AMQP.start async action... #syncronize, anyone?
     #
-    def run_em_spec_fiber spec_timeout, &block
+    def run_em_spec_fiber spec_timeout, opts = {}, &block
       EM.run do
         # Running em_before hooks
         self.class.em_hooks[:before][:each].each { |hook| instance_eval(&hook) }
@@ -245,9 +262,13 @@ module AMQP
         timeout(spec_timeout) if spec_timeout
         @_em_spec_fiber = Fiber.new do
           begin
-            block.call
+            if @_em_spec_with_amqp
+              sync AMQP.method(:start_connection), opts, &block
+            else
+              block.call
+            end
           rescue Exception => @_em_spec_exception
-#            puts "In run_em_spec_fiber, caught '#{@_em_spec_exception}'"
+#            puts "In inner run_em_spec_fiber, caught '#{@_em_spec_exception}'"
             done
           end
           Fiber.yield
@@ -257,11 +278,11 @@ module AMQP
     end
   end
 
-  # If you include AMQP::Spec module into your example group, each example of this group will run
-  # inside AMQP.start loop without the need to explicitly call 'amqp'. In order to provide options
-  # to AMQP loop, default_options class method is defined. Remember, when using AMQP::Specs, you
-  # will have a single set of AMQP.start options for all your examples.
-  #
+# If you include AMQP::Spec module into your example group, each example of this group will run
+# inside AMQP.start loop without the need to explicitly call 'amqp'. In order to provide options
+# to AMQP loop, default_options class method is defined. Remember, when using AMQP::Specs, you
+# will have a single set of AMQP.start options for all your examples.
+#
   module Spec
     def self.included(example_group)
       example_group.send(:include, SpecHelper)
@@ -274,9 +295,9 @@ module AMQP
     end
   end
 
-  # Including AMQP::EMSpec module into your example group, each example of this group will run
-  # inside EM.run loop without the need to explicitly call 'em'.
-  #
+# Including AMQP::EMSpec module into your example group, each example of this group will run
+# inside EM.run loop without the need to explicitly call 'em'.
+#
   module EMSpec
     def self.included(example_group)
       example_group.send(:include, SpecHelper)
