@@ -12,6 +12,10 @@ module AMQP
 
     # Represents any type of spec supposed to run inside event loop
     class EventedExample
+      # Create new event loop
+      def initialize opts = {}, example_group_instance, &block
+        @opts, @example_group_instance, @block = opts, example_group_instance, block
+      end
 
       # Sets timeout for currently running example
       #
@@ -67,7 +71,7 @@ module AMQP
             run_hooks :before
 
             @spec_exception = nil
-            timeout(@spec_timeout) if @spec_timeout
+            timeout(@opts[:spec_timeout]) if @opts[:spec_timeout]
             begin
               yield
             rescue Exception => @spec_exception
@@ -103,10 +107,6 @@ module AMQP
 
     # Represents spec running inside AMQP.run loop
     class EMExample < EventedExample
-      # Create new event loop
-      def initialize spec_timeout, example_group_instance, &block
-        @spec_timeout, @example_group_instance, @block = spec_timeout, example_group_instance, block
-      end
 
       # Run @block inside the EM.run event loop
       def run
@@ -129,10 +129,6 @@ module AMQP
 
     # Represents spec running inside AMQP.run loop
     class AMQPExample < EventedExample
-      # Create new event loop
-      def initialize opts = {}, spec_timeout, example_group_instance, &block
-        @opts, @spec_timeout, @example_group_instance, @block = opts, spec_timeout, example_group_instance, block
-      end
 
       # Run @block inside the AMQP.start loop
       def run
@@ -157,7 +153,7 @@ module AMQP
             end
           end
         end
-      end #done
+      end
 
       # Called from run_event_loop when event loop is finished, before any exceptions
       # is raised or example returns. We ensure AMQP state cleanup here

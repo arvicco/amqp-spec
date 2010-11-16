@@ -42,7 +42,7 @@ module AMQP
     # You can use these methods as macros inside describe/context block.
     #
     module GroupMethods
-      unless respond_to?(:metadata)
+      unless respond_to? :metadata
         # Hacking in metadata into RSpec1 to imitate Rspec2's metadata. Now you can add
         # anything to metadata Hash to pass options into examples and nested groups.
         #
@@ -54,7 +54,7 @@ module AMQP
       # Sets/retrieves default timeout for running evented specs for this
       # example group and its nested groups.
       #
-      def default_timeout(spec_timeout=nil)
+      def default_timeout spec_timeout=nil
         metadata[:em_default_timeout] = spec_timeout if spec_timeout
         metadata[:em_default_timeout]
       end
@@ -62,7 +62,7 @@ module AMQP
       # Sets/retrieves default AMQP.start options for this example group
       # and its nested groups.
       #
-      def default_options(opts=nil)
+      def default_options opts=nil
         metadata[:em_default_options] = opts if opts
         metadata[:em_default_options]
       end
@@ -85,9 +85,9 @@ module AMQP
       end
     end
 
-    def self.included(example_group)
+    def self.included example_group
       unless example_group.respond_to? :default_timeout
-        example_group.extend(GroupMethods)
+        example_group.extend GroupMethods
         example_group.metadata[:em_default_options] = {}
         example_group.metadata[:em_default_timeout] = nil
       end
@@ -107,8 +107,8 @@ module AMQP
     #
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
-      spec_timeout  = opts.delete(:spec_timeout) || self.class.default_timeout
-      @evented_example = AMQPExample.new(opts, spec_timeout, self, &block)
+      opts[:spec_timeout] ||= self.class.default_timeout
+      @evented_example = AMQPExample.new(opts, self, &block)
       @evented_example.run
     end
 
@@ -116,10 +116,13 @@ module AMQP
     # force spec to timeout if something goes wrong and EM/AMQP loop hangs for some
     # reason. SpecTimeoutExceededError is raised if it happens.
     #
-    def em(spec_timeout = self.class.default_timeout, &block)
-      spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
-      hooks = self.class.em_hooks
-      @evented_example = EMExample.new(spec_timeout, self, &block)
+    def em opts = {}, &block
+      if opts.is_a? Hash
+        opts[:spec_timeout] ||= self.class.default_timeout
+      else
+        opts = {spec_timeout: opts}
+      end
+      @evented_example = EMExample.new(opts, self, &block)
       @evented_example.run
     end
 
@@ -136,6 +139,8 @@ module AMQP
       @evented_example.done *args, &block
     end
 
+    # Manually sets timeout for currently running example
+    #
     def timeout *args
       @evented_example.timeout *args
     end
