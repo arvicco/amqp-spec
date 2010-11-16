@@ -13,30 +13,7 @@ module AMQP
     # Represents any type of spec supposed to run inside event loop
     class EventedExample
 
-      # Create new event loop
-      def initialize type, opts = {}, spec_timeout, example_group_instance, &block
-        @type, @opts, @spec_timeout, @example_group_instance, @block = type, opts, spec_timeout, example_group_instance, block
-      end
-
-      # Run @block inside the event loop
-      def run
-        if @type = :amqp
-          @_em_spec_with_amqp = true
-          begin
-            run_em_loop @spec_timeout do
-              AMQP.start_connection @opts, &@block
-            end
-          rescue Exception => outer_spec_exception
-            AMQP.cleanup_state
-            raise outer_spec_exception
-          end
-        elsif @type = :em
-          @_em_spec_with_amqp = false
-          run_em_loop @spec_timeout, &@block
-        end
-      end
-
-      # Sets timeout for current running example
+      # Sets timeout for currently running example
       #
       def timeout(spec_timeout)
         EM.cancel_timer(@_em_timer) if @_em_timer
@@ -48,34 +25,18 @@ module AMQP
 
       # Breaks the event loop and finishes the spec. This should be called after
       # you are reasonably sure that your expectations either succeeded or failed.
-      # Done yields to any given block first, then stops EM event loop.
-      # For amqp specs, stops AMQP and cleans up AMQP state.
       #
-      # You may pass delay (in seconds) to done. If you do so, please keep in mind
-      # that your (default or explicit) spec timeout may fire before your delayed done
-      # callback is due, leading to SpecTimeoutExceededError
+      # This is under-implemented (generic) method that only implements optional delay.
+      # It should be given a block that does actual work of finishing up the event loop
+      # and cleaning any remaining artifacts.
       #
-      def done(delay=nil)
-        done_proc = proc do
-          yield if block_given?
-          EM.next_tick do
-            if @_em_spec_with_amqp
-              if AMQP.conn and not AMQP.closing
-                AMQP.stop_connection do
-                  finish_em_loop { AMQP.cleanup_state }
-                end
-              else
-                finish_em_loop { AMQP.cleanup_state }
-              end
-            else
-              finish_em_loop
-            end
-          end
-        end
+      # Please redefine it inside descendant class and call super.
+      #
+      def done delay=nil, &block
         if delay
-          EM.add_timer delay, &done_proc
+          EM.add_timer delay, &block
         else
-          done_proc.call
+          block.call
         end
       end
 
@@ -232,7 +193,7 @@ module AMQP
       # TODO: break up with proc sent to super
       #
       def done(delay=nil)
-        done_proc = proc do
+        super(delay) do
           yield if block_given?
           EM.next_tick do
             if AMQP.conn and not AMQP.closing
@@ -244,12 +205,7 @@ module AMQP
             end
           end
         end
-        if delay
-          EM.add_timer delay, &done_proc
-        else
-          done_proc.call
-        end
-      end
-    end
-  end
-end
+      end #done
+    end # class AMQPExample < EventedExample
+  end # module SpecHelper
+end # module AMQP
