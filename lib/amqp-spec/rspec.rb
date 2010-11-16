@@ -108,58 +108,67 @@ module AMQP
       end
     end
 
+    # Yields to given block inside EM.run and AMQP.start loops. This method takes any option that is
+    # also accepted by EventMachine::connect. Also, options for AMQP.start include:
+    # * :user => String (default ‘guest’) - The username as defined by the AMQP server.
+    # * :pass => String (default ‘guest’) - The password for the associated :user as defined by the AMQP server.
+    # * :vhost => String (default ’/’)    - The virtual host as defined by the AMQP server.
+    # * :timeout => Numeric (default nil) - *Connection* timeout, measured in seconds.
+    # * :logging => true | false (default false) - Toggle the extremely verbose AMQP logging.
+    #
+    # In addition to EM and AMQP options, :spec_timeout option (in seconds) is used to force spec to timeout
+    # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
+    #
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
       spec_timeout  = opts.delete(:spec_timeout) || self.class.default_timeout
-      EventedLoop.amqp opts, &block
+      @event_loop = EventLoop.new(:amqp, opts, spec_timeout, &block)
+      @event_loop.run
     end
 
+    # Yields to block inside EM loop, :spec_timeout option (in seconds) is used to force spec to timeout
+    # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
+    #
     def em(spec_timeout = self.class.default_timeout, &block)
       spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
-      EventedLoop.em spec_timeout, &block
+      @event_loop = EventLoop.new(:em, spec_timeout, &block)
+      @event_loop.run
     end
 
-    def done(delay=nil, &block)
-      EventedLoop.done delay, &block
+    def done *args, &block
+      @event_loop.done *args, &block
     end
 
-    def timeout(spec_timeout)
-      EventedLoop.timeout spec_timeout
+    def timeout *args
+      @event_loop.timeout *args
+    end
+
+    def sync *args, &block
+      @event_loop.sync *args, &block
     end
 
     # Represents any type of spec supposed to run inside event loop
-    class EventedLoop
+    class EventLoop
 
-      # Yields to given block inside EM.run and AMQP.start loops. This method takes any option that is
-      # also accepted by EventMachine::connect. Also, options for AMQP.start include:
-      # * :user => String (default ‘guest’) - The username as defined by the AMQP server.
-      # * :pass => String (default ‘guest’) - The password for the associated :user as defined by the AMQP server.
-      # * :vhost => String (default ’/’)    - The virtual host as defined by the AMQP server.
-      # * :timeout => Numeric (default nil) - *Connection* timeout, measured in seconds.
-      # * :logging => true | false (default false) - Toggle the extremely verbose AMQP logging.
-      #
-      # In addition to EM and AMQP options, :spec_timeout option (in seconds) is used to force spec to timeout
-      # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
-      #
-      def amqp opts={}, &block
-        @_em_spec_with_amqp = true
-        begin
-          run_em_spec_fiber spec_timeout, opts, &block
-        rescue Exception => outer_spec_exception
-          # Make sure AMQP state is cleaned even after Rspec failures
-#        puts "In amqp, caught '#{outer_spec_exception}', @_em_spec_exception: '#{@_em_spec_exception}'"
-          AMQP.cleanup_state
-          raise outer_spec_exception
-        end
+      def initialize type, opts = {}, spec_timeout, &block
+        @type, @spec_timeout, @opts, @block = type, spec_timeout, opts, block
       end
 
-      # Yields to block inside EM loop, :spec_timeout option (in seconds) is used to force spec to timeout
-      # if something goes wrong and EM/AMQP loop hangs for some reason. SpecTimeoutExceededError is raised.
-      #
-      def em(spec_timeout = self.class.default_timeout, &block)
-        spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
-        @_em_spec_with_amqp = false
-        run_em_spec_fiber spec_timeout, &block
+      def run
+        if @type = :amqp
+          @_em_spec_with_amqp = true
+          begin
+            run_em_spec_fiber @spec_timeout, @opts, &@block
+          rescue Exception => outer_spec_exception
+            # Make sure AMQP state is cleaned even after Rspec failures
+#        puts "In amqp, caught '#{outer_spec_exception}', @_em_spec_exception: '#{@_em_spec_exception}'"
+            AMQP.cleanup_state
+            raise outer_spec_exception
+          end
+        else
+          @_em_spec_with_amqp = false
+          run_em_spec_fiber @spec_timeout, &@block
+        end
       end
 
       # Sets timeout for current running example
@@ -256,7 +265,7 @@ module AMQP
       # Stops EM loop, executes optional block, finishes off fiber and raises exception if any
       #
       def finish_em_spec_fiber
-        self.class.em_hooks[:after][:each].reverse.each { |hook| instance_eval_with_rescue(&hook) }
+#        self.class.em_hooks[:after][:each].reverse.each { |hook| instance_eval_with_rescue(&hook) }
         EM.stop_event_loop if EM.reactor_running?
         yield if block_given?
         @_em_spec_fiber.resume if @_em_spec_fiber.alive?
@@ -275,7 +284,7 @@ module AMQP
       def run_em_spec_fiber spec_timeout, opts = {}, &block
         EM.run do
           # Running em_before hooks
-          self.class.em_hooks[:before][:each].each { |hook| instance_eval(&hook) }
+#          self.class.em_hooks[:before][:each].each { |hook| instance_eval(&hook) }
 
           @_em_spec_exception = nil
           timeout(spec_timeout) if spec_timeout
@@ -299,12 +308,12 @@ module AMQP
     end # class EventedLoop
 
     # Represents spec running inside AMQP.run loop
-    class EMLoop < EventedLoop
+    class EMLoop < EventLoop
 
     end
 
 # Represents spec running inside AMQP.run loop
-    class AMQPLoop < EventedLoop
+    class AMQPLoop < EventLoop
 
     end
   end # module SpecHelper
