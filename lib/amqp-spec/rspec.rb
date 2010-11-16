@@ -122,7 +122,8 @@ module AMQP
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
       spec_timeout  = opts.delete(:spec_timeout) || self.class.default_timeout
-      @event_loop = EventLoop.new(:amqp, opts, spec_timeout, &block)
+      hooks = self.class.em_hooks
+      @event_loop = EventLoop.new(:amqp, opts, spec_timeout, hooks, &block)
       @event_loop.run
     end
 
@@ -131,7 +132,8 @@ module AMQP
     #
     def em(spec_timeout = self.class.default_timeout, &block)
       spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
-      @event_loop = EventLoop.new(:em, spec_timeout, &block)
+      hooks = self.class.em_hooks
+      @event_loop = EventLoop.new(:em, spec_timeout, hooks, &block)
       @event_loop.run
     end
 
@@ -150,8 +152,8 @@ module AMQP
     # Represents any type of spec supposed to run inside event loop
     class EventLoop
 
-      def initialize type, opts = {}, spec_timeout, &block
-        @type, @spec_timeout, @opts, @block = type, spec_timeout, opts, block
+      def initialize type, opts = {}, spec_timeout, hooks, &block
+        @type, @opts, @spec_timeout, @hooks, @block = type, opts, spec_timeout, hooks, block
       end
 
       def run
@@ -265,7 +267,7 @@ module AMQP
       # Stops EM loop, executes optional block, finishes off fiber and raises exception if any
       #
       def finish_em_spec_fiber
-#        self.class.em_hooks[:after][:each].reverse.each { |hook| instance_eval_with_rescue(&hook) }
+@hooks[:after][:each].reverse.each { |hook| instance_eval_with_rescue(&hook) }
         EM.stop_event_loop if EM.reactor_running?
         yield if block_given?
         @_em_spec_fiber.resume if @_em_spec_fiber.alive?
@@ -284,7 +286,7 @@ module AMQP
       def run_em_spec_fiber spec_timeout, opts = {}, &block
         EM.run do
           # Running em_before hooks
-#          self.class.em_hooks[:before][:each].each { |hook| instance_eval(&hook) }
+          @hooks[:before][:each].each { |hook| instance_eval(&hook) }
 
           @_em_spec_exception = nil
           timeout(spec_timeout) if spec_timeout
