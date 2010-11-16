@@ -16,9 +16,9 @@ module AMQP
       # Sets timeout for currently running example
       #
       def timeout(spec_timeout)
-        EM.cancel_timer(@_em_timer) if @_em_timer
-        @_em_timer = EM.add_timer(spec_timeout) do
-          @_em_spec_exception = SpecTimeoutExceededError.new "Example timed out"
+        EM.cancel_timer(@spec_timer) if @spec_timer
+        @spec_timer = EM.add_timer(spec_timeout) do
+          @spec_exception = SpecTimeoutExceededError.new "Example timed out"
           done
         end
       end
@@ -89,14 +89,6 @@ module AMQP
                end, args
       end
 
-      # Stops EM loop, executes optional given block
-      #
-      def finish_em_loop
-        run_hooks :after
-        EM.stop_event_loop if EM.reactor_running?
-        yield if block_given?
-      end
-
       # Runs hooks of specified type (hopefully, inside the event loop)
       #
       def run_hooks type
@@ -112,26 +104,42 @@ module AMQP
 
       # Runs given block inside separate EM event-loop fiber
       #
-      def run_em_loop spec_timeout
+      def run_em_loop
         begin
           EM.run do
             run_hooks :before
 
-            @_em_spec_exception = nil
-            timeout(spec_timeout) if spec_timeout
+            @spec_exception = nil
+            timeout(@spec_timeout) if @spec_timeout
             begin
               yield
-            rescue Exception => @_em_spec_exception
-#              p "Inside loop, caught #{@_em_spec_exception}"
+            rescue Exception => @spec_exception
+#              p "Inside loop, caught #{@spec_exception}"
               done # We need to properly terminate the event loop
             end
           end
-        rescue Exception => @_em_spec_exception
-#          p "Outside loop, caught #{@_em_spec_exception}"
+        rescue Exception => @spec_exception
+#          p "Outside loop, caught #{@spec_exception}"
           run_hooks :after # Event loop was broken, but we still need to run em_after hooks
         ensure
-          raise @_em_spec_exception if @_em_spec_exception
+          finish_example
         end
+      end
+
+      # Stops EM event loop. It is called from #done
+      #
+      def finish_em_loop
+        run_hooks :after
+        EM.stop_event_loop if EM.reactor_running?
+      end
+
+      # Called from run_event_loop when event loop is finished, before any exceptions
+      # is raised or example returns.
+      #
+      # Descendant classes may redefine to clean up type-specific state.
+      #
+      def finish_example
+        raise @spec_exception if @spec_exception
       end
 
     end # class EventedLoop
@@ -145,27 +153,22 @@ module AMQP
 
       # Run @block inside the EM.run event loop
       def run
-        run_em_loop @spec_timeout, &@block
+        run_em_loop &@block
       end
 
       # Breaks the EM event loop and finishes the spec.
       # Done yields to any given block first, then stops EM event loop.
       #
       def done(delay=nil)
-        done_proc = proc do
+        super(delay) do
           yield if block_given?
           EM.next_tick do
             finish_em_loop
           end
         end
-        if delay
-          EM.add_timer delay, &done_proc
-        else
-          done_proc.call
-        end
-      end
+      end # done
 
-    end
+    end # class EMExample < EventedExample
 
     # Represents spec running inside AMQP.run loop
     class AMQPExample < EventedExample
@@ -176,21 +179,13 @@ module AMQP
 
       # Run @block inside the AMQP.start loop
       def run
-        @_em_spec_with_amqp = true
-        begin
-          run_em_loop @spec_timeout do
-            AMQP.start_connection @opts, &@block
-          end
-        rescue Exception => outer_spec_exception
-          AMQP.cleanup_state
-          raise outer_spec_exception
+        run_em_loop do
+          AMQP.start_connection @opts, &@block
         end
       end
 
       # Breaks the event loop and finishes the spec. It yields to any given block first,
       # then stops AMQP, EM event loop and cleans up AMQP state.
-      #
-      # TODO: break up with proc sent to super
       #
       def done(delay=nil)
         super(delay) do
@@ -198,14 +193,22 @@ module AMQP
           EM.next_tick do
             if AMQP.conn and not AMQP.closing
               AMQP.stop_connection do
-                finish_em_loop { AMQP.cleanup_state }
+                finish_em_loop
               end
             else
-              finish_em_loop { AMQP.cleanup_state }
+              finish_em_loop
             end
           end
         end
       end #done
+
+      # Called from run_event_loop when event loop is finished, before any exceptions
+      # is raised or example returns. We ensure AMQP state cleanup here
+      def finish_example
+        AMQP.cleanup_state
+        super
+      end
+
     end # class AMQPExample < EventedExample
   end # module SpecHelper
 end # module AMQP
