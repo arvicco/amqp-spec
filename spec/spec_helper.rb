@@ -12,6 +12,10 @@ def rspec2?
   defined?(RSpec)
 end
 
+# Done is defined as noop to help share examples between evented and non-evented specs
+def done
+end
+
 RSPEC = rspec2? ? RSpec : Spec
 
 amqp_config = File.dirname(__FILE__) + '/amqp.yml'

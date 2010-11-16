@@ -267,35 +267,49 @@ module AMQP
         run_after_hooks
         EM.stop_event_loop if EM.reactor_running?
         yield if block_given?
-        raise @_em_spec_exception if @_em_spec_exception
       end
 
       def run_after_hooks
+        p __LINE__, @_em_spec_exception, @block
         @example_group_instance.class.em_hooks[:after][:each].reverse.each do |hook|
           @example_group_instance.instance_eval(&hook) #_with_rescue(&hook)
         end
+        p __LINE__, @_em_spec_exception
       end
 
       # Runs given block inside separate EM event-loop fiber
       #
       def run_em_loop spec_timeout, opts = {}, &block
-        EM.run do
-          # Running em_before hooks
-          @example_group_instance.class.em_hooks[:before][:each].each do |hook|
-            @example_group_instance.instance_eval(&hook)
-          end
-
-          @_em_spec_exception = nil
-          timeout(spec_timeout) if spec_timeout
-          begin
-            if @_em_spec_with_amqp
-              AMQP.start_connection opts, &block
-            else
-              block.call
+        begin
+          EM.run do
+            # Running em_before hooks
+            @example_group_instance.class.em_hooks[:before][:each].each do |hook|
+              @example_group_instance.instance_eval(&hook)
             end
-          rescue Exception => @_em_spec_exception
-            done #{raise @_em_spec_exception }
+
+            @_em_spec_exception = nil
+            timeout(spec_timeout) if spec_timeout
+            begin
+              if @_em_spec_with_amqp
+                AMQP.start_connection opts, &block
+              else
+                block.call
+              end
+            rescue Exception => @_em_spec_exception
+              p "Inside loop, caught #{@_em_spec_exception}"
+              done # We need to properly terminate the event loop
+            end
           end
+        rescue Exception => @_em_spec_exception
+          p __LINE__, @_em_spec_exception
+          p "Outside loop, caught #{@_em_spec_exception}"
+          p EM.reactor_running?
+          run_after_hooks # Event loop was broken, but we still need to run em_after hooks
+          p __LINE__, @_em_spec_exception
+        ensure
+          p __LINE__, @_em_spec_exception
+          raise @_em_spec_exception if @_em_spec_exception
+          p __LINE__, @_em_spec_exception
         end
       end
 

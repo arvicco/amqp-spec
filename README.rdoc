@@ -43,12 +43,6 @@ Default options and default timeout are local for each example group and inherit
 its nested groups, unconnected example groups DO NOT share defaults. Please note that
 this is different from EM-Spec where default_timeout is effectively a global setting.
 
-Also please note interface change compared to version 0.2.7, you should now use standard form
-of setters and getters: .default_options, .default_options=, .default_timeout and
-.default_timeout instead of combined (macros) form. Macros form is still supported for now,
-in order not to break existing specs, but it is deprecated and will be removed in future
-versions of AMQP-Spec.
-
   require "amqp-spec/rspec"
 
   describe AMQP do
@@ -96,9 +90,10 @@ before{} and after{} hooks in your example groups including AMQP::Spec. Each of 
 will run in its separate EM loop that you'll need to shut down either manually (done) or
 via timeout. Essentially, this means that any EM-related state that you'd like to set up or
 tear down using these hooks will be lost as each example will run in a separate EM loop.
-In order to run setup/teardown hooks inside the EM loop, you'll need to use before_amqp{}
-and after_amqp{} hooks that run inside the EM loop but before/after AMQP loop proper
-(TODO: these hooks are currently not implemented!)
+
+In order to run setup/teardown hooks inside the EM loop, you'll need to use em_before{}
+and em_after{} hooks that run inside the EM loop but before/after your example block.
+You don't need to call 'done' inside em_before/em_after, otherwise it'll shut down reactor.
 
   describe AMQP do
     include AMQP::Spec
