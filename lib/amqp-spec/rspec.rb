@@ -55,16 +55,16 @@ module AMQP
       # example group and its nested groups.
       #
       def default_timeout spec_timeout=nil
-        metadata[:em_default_timeout] = spec_timeout if spec_timeout
-        metadata[:em_default_timeout]
+        metadata[:em_timeout] = spec_timeout if spec_timeout
+        metadata[:em_timeout]
       end
 
       # Sets/retrieves default AMQP.start options for this example group
       # and its nested groups.
       #
       def default_options opts=nil
-        metadata[:em_default_options] = opts if opts
-        metadata[:em_default_options]
+        metadata[:em_defaults] = opts if opts
+        metadata[:em_defaults]
       end
 
       # Add before hook that will run inside EM event loop
@@ -88,8 +88,8 @@ module AMQP
     def self.included example_group
       unless example_group.respond_to? :default_timeout
         example_group.extend GroupMethods
-        example_group.metadata[:em_default_options] = {}
-        example_group.metadata[:em_default_timeout] = nil
+        example_group.metadata[:em_defaults] = {}
+        example_group.metadata[:em_timeout] = nil
       end
     end
 

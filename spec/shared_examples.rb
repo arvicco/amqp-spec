@@ -134,15 +134,15 @@ shared_examples_for 'timeout examples' do
   end
 
   context 'embedded context can set up separate defaults' do
-    default_timeout 0.2 # Can be used to set default :spec_timeout for all your amqp-based specs
+    default_timeout 0.2 # Can be used to set default :spec_timeout for all evented specs
 
     specify 'default timeout should be 0.2' do
-      expect { amqp { EM.add_timer(2) { done } } }.to raise_error SpecTimeoutExceededError
+      expect { em { EM.add_timer(2) { done } } }.to raise_error SpecTimeoutExceededError
       (Time.now-@start).should be_close(0.2, 0.1)
     end
 
     context 'deeply embedded context can set up separate defaults' do
-      default_timeout 0.5 # Can be used to set default :spec_timeout for all your amqp-based specs
+      default_timeout 0.5
 
       specify 'default timeout should be 0.5' do
         expect { amqp { EM.add_timer(2) { done } } }.to raise_error SpecTimeoutExceededError

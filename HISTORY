@@ -49,3 +49,7 @@
 == 0.2.8 / 2010-11-15
 
 * syncronize method added for wrapping async calls
+
+== 0.2.9 / 2010-11-16
+
+* Fallback to a separate default timeout
