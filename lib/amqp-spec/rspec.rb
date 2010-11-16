@@ -71,32 +71,20 @@ module AMQP
       end
 
       # before hook that will run inside EM event loop
-      def em_before *args, &block
-        scope, options = scope_and_options_from(*args)
-        em_hooks[:before][scope] << block
+      def em_before scope = :each, &block
+        raise ArgumentError, "em_before only supports :each scope" unless :each == scope
+        em_hooks[:before] << block
       end
 
       # after hook that will run inside EM event loop
-      def em_after *args, &block
-        scope, options = scope_and_options_from(*args)
-        em_hooks[:after][scope] << block
+      def em_after scope = :each, &block
+        raise ArgumentError, "em_after only supports :each scope" unless :each == scope
+        em_hooks[:after] << block
       end
 
       # Collection of evented hooks
       def em_hooks
-        metadata[:em_hooks] ||= {
-            :around => {:each => []},
-            :before => {:each => [], :all => [], :suite => []},
-            :after => {:each => [], :all => [], :suite => []}
-        }
-      end
-
-      def scope_and_options_from(scope=:each, options={})
-        if Hash === scope
-          options = scope
-          scope = :each
-        end
-        return scope, options
+        metadata[:em_hooks] ||= { :before => [], :after => []  }
       end
     end
 
@@ -270,8 +258,8 @@ module AMQP
       end
 
       def run_hooks type
-        hooks = @example_group_instance.class.em_hooks[type][:each]
-        (type == :before ? hooks : hooks.reverse).each do |hook|
+        hooks = @example_group_instance.class.em_hooks[type]
+        (:before == type ? hooks : hooks.reverse).each do |hook|
           if @example_group_instance.respond_to? :instance_eval_without_event_loop
             @example_group_instance.instance_eval_without_event_loop(&hook)
           else
