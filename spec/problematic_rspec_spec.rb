@@ -1,5 +1,54 @@
 require 'spec_helper'
 
+describe "evented specs with AMQP::Spec" do
+  include AMQP::EMSpec
+#      default_options AMQP_OPTS if defined? AMQP_OPTS
+
+#  before {
+#    p "Self.class"
+#    p self.class.metadata
+#    p "Example"
+#    p example.metadata
+#  puts self; @hooks_called = []; done } #; puts "In before: #{self}"}  #
+#
+##  before { puts self; @hooks_called << :before; done }
+##  em_before { puts self; @hooks_called << :em_before }
+##  em_after { @hooks_called << :em_after }
+##  after { @hooks_called.should include :before, :em_before, :em_after; done }
+#
+##      context 'with em block' do
+#  it 'should fucking work' do
+#    p "Self.class"
+#    p self.class.metadata
+#    p "Example"
+#    p example.metadata
+#    p "was here"
+#    p @hooks_called
+#    done
+#  end
+
+#  it 'should execute em_before' do
+#    p "was here"
+#    @hooks_called.should include :em_before
+#    @hooks_called.should_not include :em_after
+#    done
+#  end
+#
+#  it 'should execute em_after if business exception is raised' do
+#    expect {
+#      raise StandardError
+#    }.to raise_error
+#    done
+#  end
+#
+#  it 'should execute em_after if RSpec expectation fails' do
+#    expect { :this.should == :fail
+#    }.to raise_error RSPEC::Expectations::ExpectationNotMetError
+#    done
+#  end
+#
+end
+
 describe '!!!!!!!!! LEAKING OR PROBLEMATIC EXAMPLES !!!!!!!!!' do
   describe AMQP, " with em_before/em_after" do
     before { @hooks_called = [] } #; puts "In before: #{self}"}  #

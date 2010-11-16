@@ -273,7 +273,7 @@ module AMQP
         hooks = @example_group_instance.class.em_hooks[type][:each]
         (type == :before ? hooks : hooks.reverse).each do |hook|
           if @example_group_instance.respond_to? :instance_eval_without_event_loop
-            @example_group_instance.instance_evalwithout_event_loop(&hook)
+            @example_group_instance.instance_eval_without_event_loop(&hook)
           else
             @example_group_instance.instance_eval(&hook) #_with_rescue(&hook)
           end
@@ -285,11 +285,7 @@ module AMQP
       def run_em_loop spec_timeout, opts = {}, &block
         begin
           EM.run do
-            # Running em_before hooks
             run_hooks :before
-#            @example_group_instance.class.em_hooks[:before][:each].each do |hook|
-#              @example_group_instance.instance_eval(&hook)
-#            end
 
             @_em_spec_exception = nil
             timeout(spec_timeout) if spec_timeout
@@ -300,13 +296,12 @@ module AMQP
                 block.call
               end
             rescue Exception => @_em_spec_exception
-              p "Inside loop, caught #{@_em_spec_exception}"
+#              p "Inside loop, caught #{@_em_spec_exception}"
               done # We need to properly terminate the event loop
             end
           end
         rescue Exception => @_em_spec_exception
-          p "Outside loop, caught #{@_em_spec_exception}"
-          p EM.reactor_running?
+#          p "Outside loop, caught #{@_em_spec_exception}"
           run_hooks :after # Event loop was broken, but we still need to run em_after hooks
         ensure
           raise @_em_spec_exception if @_em_spec_exception
