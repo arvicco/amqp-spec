@@ -1,26 +1,5 @@
 require 'spec_helper'
 
-shared_examples_for 'hooked specs' do
-  it 'should execute em_before' do
-    p "was here"
-    @hooks_called.should include :em_before
-    @hooks_called.should_not include :em_after
-    done
-  end
-
-  it 'should execute em_after if business exception is raised' do
-    expect {
-      raise StandardError
-    }.to raise_error
-    done
-  end
-
-  it 'should execute em_after if RSpec expectation fails' do
-    expect { :this.should == :fail
-    }.to raise_error RSPEC::Expectations::ExpectationNotMetError
-    done
-  end
-end
 
 describe '!!!!!!!!! LEAKING OR PROBLEMATIC EXAMPLES !!!!!!!!!' do
   describe AMQP, " with em_before/em_after", pending: true do

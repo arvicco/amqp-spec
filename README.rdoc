@@ -43,6 +43,10 @@ Default options and default timeout are local for each example group and inherit
 its nested groups, unconnected example groups DO NOT share defaults. Please note that
 this is different from EM-Spec where default_timeout is effectively a global setting.
 
+In order to setup/teardown EM state before/after your examples, you'll need to use
+*em_before{}* and *em_after{}* hooks. These hooks are similar to standard RSpec's
+*before/after* hooks but run inside the EM event loop before/after your example block.
+
   require "amqp-spec/rspec"
 
   describe AMQP do
@@ -86,14 +90,15 @@ this is different from EM-Spec where default_timeout is effectively a global set
 
 Another option is to include AMQP::Spec in your describe block. This will patch Rspec so
 that all of your examples run inside an amqp block automatically. A word of caution about
-before{} and after{} hooks in your example groups including AMQP::Spec. Each of these hooks
+*before{}*/*after{}* hooks in your example groups including AMQP::Spec. Each of these hooks
 will run in its separate EM loop that you'll need to shut down either manually (done) or
 via timeout. Essentially, this means that any EM-related state that you'd like to set up or
-tear down using these hooks will be lost as each example will run in a separate EM loop.
+tear down using these hooks will be lost as example itself will run in a different EM loop.
 
-In order to run setup/teardown hooks inside the EM loop, you'll need to use em_before{}
-and em_after{} hooks that run inside the EM loop but before/after your example block.
-You don't need to call 'done' inside em_before/em_after, otherwise it'll shut down reactor.
+In short, you should avoid using *before/after* if you include AMQP::Spec - instead, use
+*em_before/em_after* hooks that run inside the EM event loop. One more note: you don't need
+to call 'done' inside *em_before/em_after*, otherwise it'll shut down the reactor.
+
 
   describe AMQP do
     include AMQP::Spec
@@ -101,16 +106,17 @@ You don't need to call 'done' inside em_before/em_after, otherwise it'll shut do
     default_options = {:host => 'my.amqp.broker.org', :port => '21118'}
     default_timeout = 1
 
+    em_before { @start = Time.now }
+
     it "requires a call to #done in every example" do
       1.should == 1
       done
     end
     
     it "runs test code in an amqp block automatically" do
-      start = Time.now
 
       EM.add_timer(0.5){
-        (Time.now-start).should be_close( 0.5, 0.1 )
+        (Time.now-@start).should be_close( 0.5, 0.1 )
         done
       }
     end
@@ -126,7 +132,7 @@ You don't need to call 'done' inside em_before/em_after, otherwise it'll shut do
   end
 
 Finally, you can include AMQP::EMSpec in your describe block. This will run all the group
-examples inside em block instead of amqp. before{} and after{} hooks should be finished
+examples inside em block instead of amqp. *before/after* hooks should be finished
 with #done, same as when including AMQP::Spec, and same caution about using them applies.
 
   describe AMQP do

@@ -1,5 +1,27 @@
 require 'spec_helper'
 
+shared_examples_for 'hooked specs' do
+  it 'should execute em_before' do
+    p "was here"
+    @hooks_called.should include :em_before
+    @hooks_called.should_not include :em_after
+    done
+  end
+
+  it 'should execute em_after if business exception is raised' do
+    expect {
+      raise StandardError
+    }.to raise_error
+    done
+  end
+
+  it 'should execute em_after if RSpec expectation fails' do
+    expect { :this.should == :fail
+    }.to raise_error RSPEC::Expectations::ExpectationNotMetError
+    done
+  end
+end
+
 describe "evented specs with AMQP::Spec" do
   include AMQP::EMSpec
 #      default_options AMQP_OPTS if defined? AMQP_OPTS
@@ -86,20 +108,28 @@ describe '!!!!!!!!! LEAKING OR PROBLEMATIC EXAMPLES !!!!!!!!!' do
 
         context 'with em block' do
 
+          around do |example|
+            em { example.run }
+          end
+
+          it_should_behave_like 'hooked specs'
+
           it 'should execute em_before or em_after' do
-            em { @hooks_called.should include :em_before; done }
+            @hooks_called.should include :em_before; done
           end
 
           it 'should execute em_after if business exception is raised' do
             expect {
-              em { raise StandardError; done }
+              raise StandardError
             }.to raise_error
+            done
           end
 
           it 'should execute em_after if RSpec expectation fails' do
             expect {
-              em { :this.should == :fail }
+               :this.should == :fail
             }.to raise_error RSPEC::Expectations::ExpectationNotMetError
+            done
           end
 
           context 'inside nested example group' do
