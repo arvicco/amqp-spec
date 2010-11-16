@@ -108,7 +108,7 @@ module AMQP
     def amqp opts={}, &block
       opts = self.class.default_options.merge opts
       spec_timeout  = opts.delete(:spec_timeout) || self.class.default_timeout
-      @evented_example = EventedExample.new(:amqp, opts, spec_timeout, self, &block)
+      @evented_example = AMQPExample.new(opts, spec_timeout, self, &block)
       @evented_example.run
     end
 
@@ -119,7 +119,7 @@ module AMQP
     def em(spec_timeout = self.class.default_timeout, &block)
       spec_timeout = spec_timeout[:spec_timeout] || self.class.default_timeout if spec_timeout.is_a?(Hash)
       hooks = self.class.em_hooks
-      @evented_example = EventedExample.new(:em, spec_timeout, self, &block)
+      @evented_example = EMExample.new(spec_timeout, self, &block)
       @evented_example.run
     end
 

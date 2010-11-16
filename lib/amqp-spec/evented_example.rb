@@ -8,7 +8,6 @@ module AMQP
   # a default timeout using default_timeout(timeout) macro inside describe/context block.
   #
   #
-  # noinspection RubyArgCount
   module SpecHelper
 
     # Represents any type of spec supposed to run inside event loop
@@ -42,7 +41,7 @@ module AMQP
       def timeout(spec_timeout)
         EM.cancel_timer(@_em_timer) if @_em_timer
         @_em_timer = EM.add_timer(spec_timeout) do
-          @_em_spec_exception = SpecTimeoutExceededError.new "Spec timed out"
+          @_em_spec_exception = SpecTimeoutExceededError.new "Example timed out"
           done
         end
       end
@@ -94,6 +93,7 @@ module AMQP
       # TODO: what do we do in case if errback fires instead of callback?
       # TODO: it may happen that callback is never called, and no exception raised either...
       #
+      #noinspection RubyArgCount
       def sync *args, &callback
         callable, args = callable_from *args, &callback
         fiber = Fiber.current
@@ -210,7 +210,7 @@ module AMQP
     class AMQPExample < EventedExample
       # Create new event loop
       def initialize opts = {}, spec_timeout, example_group_instance, &block
-        @opts, @spec_timeout, @example_group_instance, @block = type, opts, spec_timeout, example_group_instance, block
+        @opts, @spec_timeout, @example_group_instance, @block = opts, spec_timeout, example_group_instance, block
       end
 
       # Run @block inside the AMQP.start loop
