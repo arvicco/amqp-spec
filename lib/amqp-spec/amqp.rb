@@ -1,5 +1,6 @@
 require 'mq'
 
+# Monkey patching some methods into AMQP to make it more testable
 module AMQP
 
   # Initializes new AMQP client/connection without starting another EM loop

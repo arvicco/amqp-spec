@@ -20,5 +20,5 @@ end
 
 # Require all ruby source files located under directory lib/amqp-spec
 # If you need files in specific order, you should specify it here before the glob
-AMQP::Spec.require_libs %W[**/*]
+AMQP::Spec.require_libs %W[rspec]
 

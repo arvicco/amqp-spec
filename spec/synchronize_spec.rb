@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe AMQP::SpecHelper::EventLoop, pending: true do
+describe AMQP::SpecHelper::EventedExample, pending: true do
   include AMQP::SpecHelper
 
   describe "#sync[hronize]" do
