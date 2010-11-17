@@ -1,4 +1,4 @@
-require 'fiber' unless Fiber.respond_to?(:current)
+#require 'fiber' unless Fiber.respond_to?(:current)
 
 module AMQP
 
@@ -99,7 +99,8 @@ module AMQP
 
     end # class EventedExample
 
-    # Represents spec running inside AMQP.run loop
+
+    # Represents spec running inside EM.run loop
     class EMExample < EventedExample
 
       # Run @block inside the EM.run event loop
@@ -120,7 +121,8 @@ module AMQP
       end # done
     end # class EMExample < EventedExample
 
-    # Represents spec running inside AMQP.run loop
+
+    # Represents spec running inside AMQP.start loop
     class AMQPExample < EventedExample
 
       # Run @block inside the AMQP.start loop
@@ -149,7 +151,7 @@ module AMQP
       end
 
       # Called from run_event_loop when event loop is finished, before any exceptions
-      # is raised or example returns. We ensure AMQP state cleanup here
+      # is raised or example returns. We ensure AMQP state cleanup here.
       def finish_example
         AMQP.cleanup_state
         super

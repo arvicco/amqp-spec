@@ -33,7 +33,7 @@ interactions, but still specify some event-based expectations.
 ==Rspec
 
 There are several ways to use amqp-spec. To use it as a helper, include AMQP::SpecHelper
-in your describe block. You then use either 'amqp' or 'em' methods to wrap your evented
+in your describe block. You then use either #amqp or #em methods to wrap your evented
 test code. Inside the amqp/em block, you must call #done after your expectations. Everything
 works normally otherwise. You can set default_timeout and default_options to avoid manually
 setting AMQP options for each example. However, if you DO supply options to #amqp method
@@ -44,8 +44,9 @@ its nested groups, unconnected example groups DO NOT share defaults. Please note
 this is different from EM-Spec where default_timeout is effectively a global setting.
 
 In order to setup/teardown EM state before/after your examples, you'll need to use
-*em_before{}* and *em_after{}* hooks. These hooks are similar to standard RSpec's
+*em_before* and *em_after* hooks. These hooks are similar to standard RSpec's
 *before/after* hooks but run inside the EM event loop before/after your example block.
+If you are using
 
   require "amqp-spec/rspec"
 
@@ -90,14 +91,14 @@ In order to setup/teardown EM state before/after your examples, you'll need to u
 
 Another option is to include AMQP::Spec in your describe block. This will patch Rspec so
 that all of your examples run inside an amqp block automatically. A word of caution about
-*before{}*/*after{}* hooks in your example groups including AMQP::Spec. Each of these hooks
-will run in its separate EM loop that you'll need to shut down either manually (done) or
+*before*/*after* hooks in your example groups including AMQP::Spec. Each of these hooks
+will run in its separate EM loop that you'll need to shut down either manually (#done) or
 via timeout. Essentially, this means that any EM-related state that you'd like to set up or
 tear down using these hooks will be lost as example itself will run in a different EM loop.
 
 In short, you should avoid using *before/after* if you include AMQP::Spec - instead, use
 *em_before/em_after* hooks that run inside the EM event loop. One more note: you don't need
-to call 'done' inside *em_before/em_after*, otherwise it'll shut down the reactor.
+to call #done inside *em_before/em_after*, otherwise it'll shut down the reactor.
 
 
   describe AMQP do
@@ -132,7 +133,7 @@ to call 'done' inside *em_before/em_after*, otherwise it'll shut down the reacto
   end
 
 Finally, you can include AMQP::EMSpec in your describe block. This will run all the group
-examples inside em block instead of amqp. *before/after* hooks should be finished
+examples inside em block instead of amqp. Non-evented *before/after* hooks should be finished
 with #done, same as when including AMQP::Spec, and same caution about using them applies.
 
   describe AMQP do
@@ -221,11 +222,12 @@ Something like this will do the trick:
 
 ==Limitations
 
-AMQP-Spec can be currently used with Rspec only. I suppose, there is nothing special in
-extending EM-Spec's test unit and bacon support, I just do not have experience dealing with
-these platforms. Another limitation, it uses native Fibers and therefore not compatible with
-Ruby 1.8. Again, it seems possible to rewrite it in 1.8-compatible style, with string evals
-and Fiber backport, but I'd rather leave this work to someone else.
+AMQP-Spec can be currently used with Rspec only. I suppose, it is not that difficult to
+extend EM-Spec's Test::Unit and Bacon support, I just do not have experience doing it.
+
+Another limitation, library uses 1.9 syntax and therefore not compatible with Ruby 1.8.
+Again, it seems possible to rewrite it in 1.8-compatible style, with string evals and
+all such, but I'd rather leave this work to someone else.
 
 Any help improving this library is greatly appreciated...
 

@@ -115,6 +115,9 @@ module AMQP
     # force spec to timeout if something goes wrong and EM/AMQP loop hangs for some
     # reason. SpecTimeoutExceededError is raised if it happens.
     #
+    # For compatibility with EM-Spec API, em method accepts either options Hash
+    # or numeric timeout in seconds.
+    #
     def em opts = {}, &block
       if opts.is_a? Hash
         opts[:spec_timeout] ||= self.class.default_timeout
