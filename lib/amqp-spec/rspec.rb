@@ -1,5 +1,5 @@
-require 'amqp-spec/amqp'
-require 'amqp-spec/evented_example'
+require_relative 'amqp'
+require_relative 'evented_example'
 
 # You can include one of the following modules into your example groups:
 # AMQP::SpecHelper,
@@ -80,8 +80,30 @@ module AMQP
 
       # Collection of evented hooks
       def em_hooks
-        metadata[:em_hooks] ||= {:before => [], :after => []}
+        metadata[:em_hooks] ||= {}
+        metadata[:em_hooks][self] ||= {:before => [], :after => []}
+#        p "#{self} < #{superclass}", em_metadata[:em_hooks].keys
+        metadata[:em_hooks][self]
       end
+
+#      # Returns a collection of all em hooks of given type
+#      # (including ancestor hooks)
+#      #
+#      def all_hooks type
+#        hooks = superclass.all_hooks(type) rescue []
+#        hooks += em_hooks[type]
+#      end
+
+      # Returns a collection of all em hooks of given type
+      # (including ancestor hooks)
+      #
+      def all_hooks type
+        hooks = superclass.all_hooks(type) rescue []
+        hooks += em_hooks[type]
+#        :before == type ? hooks : hooks.reverse
+        hooks
+      end
+
     end
 
     def self.included example_group
@@ -90,6 +112,12 @@ module AMQP
         example_group.metadata[:em_defaults] = {}
         example_group.metadata[:em_timeout] = nil
       end
+    end
+
+    # Retrieves metadata passed in from enclosing example groups
+    #
+    def metadata
+      @em_metadata ||= self.class.metadata.dup rescue {}
     end
 
     # Yields to a given block inside EM.run and AMQP.start loops. This method takes

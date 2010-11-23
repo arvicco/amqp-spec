@@ -61,3 +61,7 @@
 == 0.3.1 / 2010-11-17
 
 * Documentation cleanup
+
+== 0.3.2 / 2010-11-23
+
+* EM hooks now working as they should - bugs fixed

@@ -10,6 +10,7 @@ shared_examples_for 'hooked em specs' do
   end
 
   it 'should execute em_after if business exception is raised' do
+    # Expectation is set in after{} hook
     em do
       expect {
         raise StandardError
@@ -19,6 +20,7 @@ shared_examples_for 'hooked em specs' do
   end
 
   it 'should execute em_after if RSpec expectation fails' do
+    # Expectation is set in after{} hook
     em do
       expect { :this.should == :fail
       }.to raise_error RSPEC::Expectations::ExpectationNotMetError
@@ -37,6 +39,7 @@ shared_examples_for 'hooked amqp specs' do
   end
 
   it 'should execute em_after if business exception is raised' do
+    # Expectation is set in after{} hook
     amqp do
       expect {
         raise StandardError
@@ -46,6 +49,7 @@ shared_examples_for 'hooked amqp specs' do
   end
 
   it 'should execute em_after if RSpec expectation fails' do
+    # Expectation is set in after{} hook
     amqp do
       expect { :this.should == :fail
       }.to raise_error RSPEC::Expectations::ExpectationNotMetError
@@ -92,6 +96,21 @@ describe AMQP, " with em_before/em_after" do
 
         it_should_behave_like 'hooked em specs'
 
+        it 'should not run nested em hooks' do
+          em do
+            @hooks_called.should_not include :context_em_before, :context_before
+            done
+          end
+        end
+
+        it 'should not run hooks from unrelated group' do
+          em do
+            @hooks_called.should_not include :amqp_context_em_before,
+                                             :amqp_context_before
+            done
+          end
+        end
+
         context 'inside nested example group' do
           before { @hooks_called << :context_before }
           em_before { @hooks_called << :context_em_before }
@@ -103,6 +122,8 @@ describe AMQP, " with em_before/em_after" do
                                                :context_em_before,
                                                :context_em_after,
                                                :em_after }
+
+          it_should_behave_like 'hooked em specs'
 
           it 'should fire both nested :before hooks' do
             em do
@@ -115,8 +136,6 @@ describe AMQP, " with em_before/em_after" do
             end
           end
 
-          it_should_behave_like 'hooked em specs'
-
         end # context 'inside nested example group'
       end # context 'with em block'
 
@@ -124,30 +143,44 @@ describe AMQP, " with em_before/em_after" do
 
         it_should_behave_like 'hooked amqp specs'
 
+        it 'should not run nested em hooks' do
+          amqp do
+            @hooks_called.should_not include :amqp_context_em_before,
+                                             :amqp_context_before
+            done
+          end
+        end
+
+        it 'should not run hooks from unrelated group' do
+          amqp do
+            @hooks_called.should_not include :context_em_before, :context_before
+            done
+          end
+        end
+
         context 'inside nested example group' do
-          before { @hooks_called << :context_before }
-          em_before { @hooks_called << :context_em_before }
-          em_after { @hooks_called << :context_em_after }
+          before { @hooks_called << :amqp_context_before }
+          em_before { @hooks_called << :amqp_context_em_before }
+          em_after { @hooks_called << :amqp_context_em_after }
 
-          after { @hooks_called.should include :before,
-                                               :context_before,
-                                               :em_before,
-                                               :context_em_before,
-                                               :context_em_after,
-                                               :em_after }
-
-          it 'should fire both nested :before hooks' do
-            amqp do
-              @hooks_called.should include :before,
-                                           :context_before,
+          after { @hooks_called.should == [:before,
+                                           :amqp_context_before,
                                            :em_before,
-                                           :context_em_before
-              @hooks_called.should_not include :em_after, :context_em_after
+                                           :amqp_context_em_before,
+                                           :amqp_context_em_after,
+                                           :em_after] }
+
+          it_should_behave_like 'hooked amqp specs'
+
+          it 'should fire all :before hooks in correct order' do
+            amqp do
+              @hooks_called.should == [:before,
+                                       :amqp_context_before,
+                                       :em_before,
+                                       :amqp_context_em_before]
               done
             end
           end
-
-          it_should_behave_like 'hooked amqp specs'
 
         end # context 'inside nested example group'
       end # context 'with amqp block'
