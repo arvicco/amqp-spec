@@ -54,8 +54,7 @@ module AMQP
       # example group and its nested groups.
       #
       def default_timeout spec_timeout=nil
-        metadata[:em_timeout] = spec_timeout if spec_timeout
-        metadata[:em_timeout]
+        default_options[:spec_timeout] = spec_timeout || default_options[:spec_timeout]
       end
 
       # Sets/retrieves default AMQP.start options for this example group
@@ -63,7 +62,7 @@ module AMQP
       #
       def default_options opts=nil
         metadata[:em_defaults] ||= {}
-        metadata[:em_defaults][self] ||= superclass.default_options.dup rescue {}
+        metadata[:em_defaults][self] ||= (superclass.default_options.dup rescue {})
         metadata[:em_defaults][self] = opts || metadata[:em_defaults][self]
       end
 
@@ -91,8 +90,6 @@ module AMQP
     def self.included example_group
       unless example_group.respond_to? :default_timeout
         example_group.extend GroupMethods
-        example_group.metadata[:em_defaults] = {}
-        example_group.metadata[:em_timeout] = nil
       end
     end
 
