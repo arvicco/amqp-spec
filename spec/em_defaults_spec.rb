@@ -57,7 +57,7 @@ describe AMQP::SpecHelper, " .default_options" do
         default_options.should == nested_default_options
       end
 
-      it 'can be changed, thus diverging from example group default_options' do
+      it 'can be changed in example, thus diverging from example group default_options' do
         default_options[:example_key] = :example_value
         default_options.should have_key :example_key
         default_options.should_not == nested_default_options
@@ -83,7 +83,7 @@ describe AMQP::SpecHelper, " .default_options" do
       default_options.should_not == root_default_options
     end
 
-    it 'can be changed, thus diverging from example group default_options' do
+    it 'can be changed in example, thus diverging from example group default_options' do
       default_options[:example_key] = :example_value
       default_options.should have_key :example_key
       default_options.should have_key :nested_key
@@ -100,11 +100,11 @@ describe AMQP::SpecHelper, " .default_options" do
       deeply_nested_default_options = default_options
 
       it 'inherits default options from enclosing group' do
-        nested_default_options.should have_key :nested_key
+        deeply_nested_default_options.should have_key :nested_key
       end
 
       it 'changing default options inside deeply nested group works' do
-        nested_default_options.should have_key :deeply_nested_key
+        deeply_nested_default_options.should have_key :deeply_nested_key
       end
 
       it 'changing default_options in nested group affects example group default_options' do
@@ -115,7 +115,7 @@ describe AMQP::SpecHelper, " .default_options" do
         default_options.should_not == root_default_options
       end
 
-      it 'can be changed, thus diverging from example group default_options' do
+      it 'can be changed in example, thus diverging from example group default_options' do
         default_options[:example_key] = :example_value
         default_options.should have_key :example_key
         default_options.should have_key :nested_key

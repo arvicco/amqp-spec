@@ -62,10 +62,9 @@ module AMQP
       # and its nested groups.
       #
       def default_options opts=nil
-#        metadata[:em_defaults] ||= {}
-#        metadata[:em_defaults][self] ||= superclass.default_options.dup rescue {}
-        metadata[:em_defaults][self] = opts if opts
-        metadata[:em_defaults]
+        metadata[:em_defaults] ||= {}
+        metadata[:em_defaults][self] ||= superclass.default_options.dup rescue {}
+        metadata[:em_defaults][self] = opts || metadata[:em_defaults][self]
       end
 
       # Add before hook that will run inside EM event loop
