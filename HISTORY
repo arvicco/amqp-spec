@@ -65,3 +65,7 @@
 == 0.3.2 / 2010-11-23
 
 * EM hooks now working as they should - bugs fixed
+
+== 0.3.3 / 2010-11-24
+
+* Spec timeout refactored

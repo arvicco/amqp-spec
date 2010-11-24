@@ -118,8 +118,7 @@ module AMQP
     # reason. SpecTimeoutExceededError is raised if it happens.
     #
     def amqp opts={}, &block
-      opts = self.class.default_options.merge opts
-      opts[:spec_timeout] ||= self.class.default_timeout
+      opts = default_options.merge opts
       @evented_example = AMQPExample.new(opts, self, &block)
       @evented_example.run
     end
@@ -132,11 +131,7 @@ module AMQP
     # or numeric timeout in seconds.
     #
     def em opts = {}, &block
-      if opts.is_a? Hash
-        opts[:spec_timeout] ||= self.class.default_timeout
-      else
-        opts = {spec_timeout: opts}
-      end
+      opts = default_options.merge(opts.is_a?(Hash) ? opts : {spec_timeout: opts})
       @evented_example = EMExample.new(opts, self, &block)
       @evented_example.run
     end

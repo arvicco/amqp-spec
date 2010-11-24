@@ -38,12 +38,6 @@ module AMQP
         end
       end
 
-      # Retrieves metadata passed in from enclosing example groups
-      #
-      def metadata
-        @metadata ||= @example_group_instance.metadata.dup rescue {}
-      end
-
       # Runs hooks of specified type (hopefully, inside the event loop)
       #
       def run_em_hooks type
@@ -76,7 +70,7 @@ module AMQP
           end
         rescue Exception => @spec_exception
 #          p "Outside loop, caught #{@spec_exception}"
-          run_em_hooks :after # Event loop was broken, but we still need to run em_after hooks
+          run_em_hooks :after # Event loop broken, but we still need to run em_after hooks
         ensure
           finish_example
         end
@@ -89,7 +83,8 @@ module AMQP
         EM.stop_event_loop if EM.reactor_running?
       end
 
-      # Called from #run_event_loop when event loop is stopped, but before example returns.
+      # Called from #run_event_loop when event loop is stopped,
+      # but before the example returns.
       # Descendant classes may redefine to clean up type-specific state.
       #
       def finish_example
