@@ -22,10 +22,12 @@ describe AMQP::SpecHelper, " .metadata" do
   context 'inside nested example group 1' do
     nested_metadata = metadata
 
-    it 'nested group metadata CONTAINS root enclosing group metadata' do
-      nested_metadata.should_not == root_metadata
-      nested_metadata[:example_group][:example_group].should ==
-          root_metadata[:example_group]
+    if rspec2? #describes RSpec2-specific behavior
+      it 'nested group metadata CONTAINS root enclosing group metadata' do
+        nested_metadata.should_not == root_metadata
+        nested_metadata[:example_group][:example_group].should ==
+            root_metadata[:example_group]
+      end
     end
 
     it 'except for :example_group key, nested and root group metadata is the same' do
@@ -54,13 +56,15 @@ describe AMQP::SpecHelper, " .metadata" do
     context 'inside deeply nested example group 1' do
       deeply_nested_metadata = metadata
 
-      it 'deeply_nested group metadata CONTAINS enclosing group metadata' do
-        deeply_nested_metadata.should_not == root_metadata
-        deeply_nested_metadata[:example_group][:example_group].should ==
-            nested_metadata[:example_group]
+      if rspec2? #describes RSpec2-specific behavior
+        it 'deeply_nested group metadata CONTAINS enclosing group metadata' do
+          deeply_nested_metadata.should_not == root_metadata
+          deeply_nested_metadata[:example_group][:example_group].should ==
+              nested_metadata[:example_group]
+        end
       end
 
-      it 'except for :example_group key, deeply_nested and root group metadata is the same' do
+      it 'except for :example_group, deeply_nested and root group metadata is the same' do
         @root = root_metadata.dup
         @root.delete(:example_group)
         @nested = nested_metadata.dup
@@ -92,10 +96,12 @@ describe AMQP::SpecHelper, " .metadata" do
     metadata[:nested_key] = :nested_value
     nested_metadata = metadata
 
-    it 'nested group metadata CONTAINS root enclosing group metadata' do
-      nested_metadata.should_not == root_metadata
-      nested_metadata[:example_group][:example_group].should ==
-          root_metadata[:example_group]
+    if rspec2? #describes RSpec2-specific behavior
+      it 'nested group metadata CONTAINS root enclosing group metadata' do
+        nested_metadata.should_not == root_metadata
+        nested_metadata[:example_group][:example_group].should ==
+            root_metadata[:example_group]
+      end
     end
 
     it "except for :example_group and modified keys," +
@@ -127,9 +133,11 @@ describe AMQP::SpecHelper, " .metadata" do
       metadata[:deeply_nested_key] = :deeply_nested_value
       deeply_nested_metadata = metadata
 
-      it 'deeply_nested group metadata CONTAINS enclosing group metadata' do
-        deeply_nested_metadata[:example_group][:example_group].should ==
-            nested_metadata[:example_group]
+      if rspec2? #describes RSpec2-specific behavior
+        it 'deeply_nested group metadata CONTAINS enclosing group metadata' do
+          deeply_nested_metadata[:example_group][:example_group].should ==
+              nested_metadata[:example_group]
+        end
       end
 
       it "except for :example_group and modified keys," +
