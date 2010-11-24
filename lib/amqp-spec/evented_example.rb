@@ -88,7 +88,6 @@ module AMQP
       # Descendant classes may redefine to clean up type-specific state.
       #
       def finish_example
-#        p @spec_exception if @spec_exception
         raise @spec_exception if @spec_exception
       end
 

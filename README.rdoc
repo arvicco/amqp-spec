@@ -45,8 +45,9 @@ this is different from EM-Spec where default_timeout is effectively a global set
 
 In order to setup/teardown EM state before/after your examples, you'll need to use
 *em_before* and *em_after* hooks. These hooks are similar to standard RSpec's
-*before/after* hooks but run inside the EM event loop before/after your example block.
-If you are using
+*before*/*after* hooks but run inside the EM event loop before/after your example block.
+If you are using #amqp method, *em_before* hook will run just BEFORE AMQP connection is
+attempted, and *em_after* is run after AMQP is stopped.
 
   require "amqp-spec/rspec"
 
@@ -96,8 +97,8 @@ will run in its separate EM loop that you'll need to shut down either manually (
 via timeout. Essentially, this means that any EM-related state that you'd like to set up or
 tear down using these hooks will be lost as example itself will run in a different EM loop.
 
-In short, you should avoid using *before/after* if you include AMQP::Spec - instead, use
-*em_before/em_after* hooks that run inside the EM event loop. One more note: you don't need
+In short, you should avoid using *before*/*after* if you include AMQP::Spec - instead, use
+*em_before*/*em_after* hooks that run inside the EM event loop. One more note: you don't need
 to call #done inside *em_before/em_after*, otherwise it'll shut down the reactor.
 
 
