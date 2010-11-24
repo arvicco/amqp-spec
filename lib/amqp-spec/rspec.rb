@@ -62,7 +62,9 @@ module AMQP
       # and its nested groups.
       #
       def default_options opts=nil
-        metadata[:em_defaults] = opts if opts
+#        metadata[:em_defaults] ||= {}
+#        metadata[:em_defaults][self] ||= superclass.default_options.dup rescue {}
+        metadata[:em_defaults][self] = opts if opts
         metadata[:em_defaults]
       end
 
@@ -75,23 +77,16 @@ module AMQP
       # Add after hook that will run inside EM event loop
       def em_after scope = :each, &block
         raise ArgumentError, "em_after only supports :each scope" unless :each == scope
-        em_hooks[:after] << block
+        em_hooks[:after].unshift block
       end
 
       # Collection of evented hooks for THIS example group
       def em_hooks
         metadata[:em_hooks] ||= {}
-        metadata[:em_hooks][self] ||= {:before => [], :after => []}
+        metadata[:em_hooks][self] ||=
+            {before: (superclass.em_hooks[:before].clone rescue []),
+             after: (superclass.em_hooks[:after].clone rescue [])}
       end
-
-      # Returns a collection of all em hooks of given type
-      # (including ancestor hooks)
-      #
-      def all_hooks type
-        hooks = superclass.all_hooks(type) rescue []
-        hooks += em_hooks[type]
-      end
-
     end
 
     def self.included example_group
