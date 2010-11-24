@@ -58,17 +58,17 @@ shared_examples_for 'hooked amqp specs' do
   end
 end
 
-describe AMQP, " with em_before/em_after" do
-  before { @hooks_called = [] } #; puts "In before: #{self}"}  #
+describe AMQP::SpecHelper, ".em_before/.em_after" do
+  before { @hooks_called = [] }
 
   describe AMQP, " tested with AMQP::SpecHelper" do
     include AMQP::SpecHelper
     default_options AMQP_OPTS if defined? AMQP_OPTS
 
-    before { @hooks_called << :before } #; puts "In before 2: #{self}" }
+    before { @hooks_called << :before }
 
-    em_before { @hooks_called << :em_before } # puts "In em_before: #{self}";
-    em_after { @hooks_called << :em_after } # puts "In em_after: #{self}";
+    em_before { @hooks_called << :em_before }
+    em_after { @hooks_called << :em_after }
 
     context 'for non-evented specs' do
       after { @hooks_called.should == [:before] }
@@ -159,7 +159,7 @@ describe AMQP, " with em_before/em_after" do
         end
 
         context 'inside nested example group' do
-          before { @hooks_called << :amqp_context_before }
+          before { @hooks_called << :amqp_context_before; $debug = true }
           em_before { @hooks_called << :amqp_context_em_before }
           em_after { @hooks_called << :amqp_context_em_after }
 
@@ -168,7 +168,7 @@ describe AMQP, " with em_before/em_after" do
                                            :em_before,
                                            :amqp_context_em_before,
                                            :amqp_context_em_after,
-                                           :em_after] }
+                                           :em_after] ; $debug = nil}
 
           it_should_behave_like 'hooked amqp specs'
 

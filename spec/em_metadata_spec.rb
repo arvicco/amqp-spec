@@ -85,8 +85,7 @@ describe AMQP::SpecHelper, " .metadata" do
         metadata.should_not have_key :example_key
         metadata.should == deeply_nested_metadata
       end
-
-    end
+    end # inside deeply nested example group 1
   end # inside nested example group 1
 
   context 'inside nested example group 2' do
@@ -124,7 +123,7 @@ describe AMQP::SpecHelper, " .metadata" do
       metadata.should == nested_metadata
     end
 
-    context 'inside deeply nested example group 1' do
+    context 'inside deeply nested example group 2' do
       metadata[:deeply_nested_key] = :deeply_nested_value
       deeply_nested_metadata = metadata
 
@@ -161,7 +160,6 @@ describe AMQP::SpecHelper, " .metadata" do
         metadata.should_not have_key :example_key
         metadata.should == deeply_nested_metadata
       end
-    end
+    end # inside deeply nested example group 2
   end # inside nested example group 2
-
 end # describe AMQP, "metadata"

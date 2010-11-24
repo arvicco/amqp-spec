@@ -78,21 +78,11 @@ module AMQP
         em_hooks[:after] << block
       end
 
-      # Collection of evented hooks
+      # Collection of evented hooks for THIS example group
       def em_hooks
         metadata[:em_hooks] ||= {}
         metadata[:em_hooks][self] ||= {:before => [], :after => []}
-#        p "#{self} < #{superclass}", em_metadata[:em_hooks].keys
-        metadata[:em_hooks][self]
       end
-
-#      # Returns a collection of all em hooks of given type
-#      # (including ancestor hooks)
-#      #
-#      def all_hooks type
-#        hooks = superclass.all_hooks(type) rescue []
-#        hooks += em_hooks[type]
-#      end
 
       # Returns a collection of all em hooks of given type
       # (including ancestor hooks)
@@ -100,8 +90,6 @@ module AMQP
       def all_hooks type
         hooks = superclass.all_hooks(type) rescue []
         hooks += em_hooks[type]
-#        :before == type ? hooks : hooks.reverse
-        hooks
       end
 
     end
@@ -118,6 +106,12 @@ module AMQP
     #
     def metadata
       @em_metadata ||= self.class.metadata.dup rescue {}
+    end
+
+    # Retrieves default options passed in from enclosing example groups
+    #
+    def default_options
+      @em_default_options ||= self.class.default_options.dup rescue {}
     end
 
     # Yields to a given block inside EM.run and AMQP.start loops. This method takes

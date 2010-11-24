@@ -47,9 +47,8 @@ module AMQP
       # Runs hooks of specified type (hopefully, inside the event loop)
       #
       def run_em_hooks type
-        hooks = @example_group_instance.class.all_hooks type
+        hooks = @example_group_instance.class.all_hooks(type)
         (:before == type ? hooks : hooks.reverse).each do |hook|
-#          @example_group_instance.class.all_hooks(type).each do |hook|
           if @example_group_instance.respond_to? :instance_eval_without_event_loop
             @example_group_instance.instance_eval_without_event_loop(&hook)
           else
@@ -57,6 +56,7 @@ module AMQP
           end
         end
       end
+
 
       # Runs given block inside EM event loop.
       # Double-round exception handler needed because some of the exceptions bubble
