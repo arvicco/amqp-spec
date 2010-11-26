@@ -10,20 +10,21 @@ Simple API for writing asynchronous EventMachine/AMQP specs. Supports RSpec and 
 
 EventMachine-based code, including synchronous {AMQP library}[http://github.com/tmm1/amqp]
 is notoriously difficult to test. To the point that many people recommend using either
-Mocks[http://github.com/danielsdeleo/moqueue] or {synchronous}[http://github.com/celldee/bunny]
-libraries instead of EM-based libraries in unit tests. This is not always an option, however -
-sometimes your code just has to run inside the event loop, and you want to test a real thing,
-not mocks.
+Mocks[http://github.com/danielsdeleo/moqueue]
+or {synchronous libraries}[http://github.com/celldee/bunny]
+instead of EM-based libraries in unit tests. This is not always an option, however -
+sometimes your code just has to run inside the event loop, and you want to test a real
+thing, not just mocks.
 
 EM-Spec[http://github.com/tmm1/em-spec] gem made it easier to write evented specs, but it
 has several drawbacks. First, it is not easy to manage both EM.run and AMQP.start loops
 at the same time. Second, AMQP is not properly stopped and deactivated upon exceptions and
 timeouts, resulting in state leak between examples and multiple mystereous failures.
 
-AMQP-Spec is based on EM-Spec code but makes it easier to test AMQP event loops specifically.
-API is very similar to EM-Spec's, only a bit extended. The final goal is to make writing AMQP
-specs reasonably pleasant experience and dispel the notion that evented AMQP-based libs are
-impossible to unit-test.
+AMQP-Spec is based on EM-Spec code but makes it easier to test AMQP event loops
+specifically. API is very similar to EM-Spec's, only a bit extended. The final goal is to
+make writing AMQP specs reasonably pleasant experience and dispel the notion that evented
+AMQP-based libs are impossible to unit-test.
 
 Mind you, you still have to properly manage your AMQP broker in order to prevent broker
 state from leaking between examples. You can try to combine AMQP-Spec and
@@ -48,6 +49,12 @@ In order to setup/teardown EM state before/after your examples, you'll need to u
 *before*/*after* hooks but run inside the EM event loop before/after your example block.
 If you are using #amqp method, *em_before* hook will run just BEFORE AMQP connection is
 attempted, and *em_after* is run after AMQP is stopped.
+
+Sometimes, may want to setup/teardown state inside AMQP connection (inside block given to
+AMQP.start): for example, to make sure that the connection is established before your
+example runs, or pre-declare some queues and exchanges common for all examples.
+In this case, please use *amqp_before* and *amqp_after* hooks. These hooks run inside
+the AMQP.start block just before/after your example block.
 
   require "amqp-spec/rspec"
 
@@ -98,8 +105,11 @@ via timeout. Essentially, this means that any EM-related state that you'd like t
 tear down using these hooks will be lost as example itself will run in a different EM loop.
 
 In short, you should avoid using *before*/*after* if you include AMQP::Spec - instead, use
-*em_before*/*em_after* hooks that run inside the EM event loop. One more note: you don't need
-to call #done inside *em_before/em_after*, otherwise it'll shut down the reactor.
+*em_before*/*em_after* or *amqp_before*/*amqp_after* hooks that run inside the EM event
+loop.
+
+One more note: you don't need to call #done inside evented hooks, otherwise it'll shut down
+the EM reactor.
 
 
   describe AMQP do
@@ -134,8 +144,9 @@ to call #done inside *em_before/em_after*, otherwise it'll shut down the reactor
   end
 
 Finally, you can include AMQP::EMSpec in your describe block. This will run all the group
-examples inside em block instead of amqp. Non-evented *before/after* hooks should be finished
-with #done, same as when including AMQP::Spec, and same caution about using them applies.
+examples inside em block instead of amqp. Non-evented *before*/*after* hooks should be
+finished with #done, same as when including AMQP::Spec, and same caution about using them
+applies.
 
   describe AMQP do
     include AMQP::EMSpec
@@ -190,14 +201,14 @@ Take the following spec as an example:
 Seems like a straightforward spec: you subscribe to a message queue, you set expectations
 inside your subscribe block, then you publish into this queue, then you call done. What may
 be wrong with it? Well, if you happen to use this spec against live AMQP broker, everything
-may be wrong. First, communication delays. There is no guarantee that by the time you publish
-your message, the queue have been either created or subscribed to. There is also no guarantee
-that your subscriber received the message by the time you are unsubscribing and deleting your
-queue. Second, sequence of your blocks. Remember, they are delayed callbacks! Don't just
-assume your previous block is already executed when you start your new asynchronous action.
-In this spec, when done is called, it stops everything before your subscribe callback even
-has a chance to fire. As a result, you'll get a PASSING spec even though your expectation
-was never executed!
+may be wrong. First, communication delays. There is no guarantee that by the time you
+publish your message, the queue have been either created or subscribed to. There is also
+no guarantee that your subscriber received the message by the time you are unsubscribing
+and deleting your queue. Second, sequence of your blocks. Remember they are delayed
+callbacks! Don't just assume your previous block is already executed when you start your
+new asynchronous action. In this spec, when done is called, it stops everything before your
+subscribe callback even has a chance to fire. As a result, you'll get a PASSING spec even
+though your expectation was never executed!
 
 How to improve this spec? Allow some time for async actions to finish: either use EM timers
 or pass :nowait=>false to your asynch calls to force them into synchronicity. Keep in mind

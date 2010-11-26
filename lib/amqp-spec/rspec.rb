@@ -78,13 +78,13 @@ module AMQP
         em_hooks[:em_after].unshift block
       end
 
-      # Add before hook that will run inside EM event loop
+      # Add before hook that will run inside AMQP connection (AMQP.start loop)
       def amqp_before scope = :each, &block
         raise ArgumentError, "amqp_before only supports :each scope" unless :each == scope
         em_hooks[:amqp_before] << block
       end
 
-      # Add after hook that will run inside EM event loop
+      # Add after hook that will run inside AMQP connection (AMQP.start loop)
       def amqp_after scope = :each, &block
         raise ArgumentError, "amqp_after only supports :each scope" unless :each == scope
         em_hooks[:amqp_after].unshift block
