@@ -69,21 +69,35 @@ module AMQP
       # Add before hook that will run inside EM event loop
       def em_before scope = :each, &block
         raise ArgumentError, "em_before only supports :each scope" unless :each == scope
-        em_hooks[:before] << block
+        em_hooks[:em_before] << block
       end
 
       # Add after hook that will run inside EM event loop
       def em_after scope = :each, &block
         raise ArgumentError, "em_after only supports :each scope" unless :each == scope
-        em_hooks[:after].unshift block
+        em_hooks[:em_after].unshift block
+      end
+
+      # Add before hook that will run inside EM event loop
+      def amqp_before scope = :each, &block
+        raise ArgumentError, "amqp_before only supports :each scope" unless :each == scope
+        em_hooks[:amqp_before] << block
+      end
+
+      # Add after hook that will run inside EM event loop
+      def amqp_after scope = :each, &block
+        raise ArgumentError, "amqp_after only supports :each scope" unless :each == scope
+        em_hooks[:amqp_after].unshift block
       end
 
       # Collection of evented hooks for THIS example group
       def em_hooks
         metadata[:em_hooks] ||= {}
         metadata[:em_hooks][self] ||=
-            {before: (superclass.em_hooks[:before].clone rescue []),
-             after: (superclass.em_hooks[:after].clone rescue [])}
+            {em_before: (superclass.em_hooks[:em_before].clone rescue []),
+             em_after: (superclass.em_hooks[:em_after].clone rescue []),
+             amqp_before: (superclass.em_hooks[:amqp_before].clone rescue []),
+             amqp_after: (superclass.em_hooks[:amqp_after].clone rescue [])}
       end
     end
 

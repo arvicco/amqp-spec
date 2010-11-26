@@ -69,3 +69,7 @@
 == 0.3.3 / 2010-11-24
 
 * Spec timeout refactored
+
+== 0.3.4 / 2010-11-26
+
+* amqp_before/after hooks added

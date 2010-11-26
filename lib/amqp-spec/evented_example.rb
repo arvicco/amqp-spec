@@ -57,7 +57,7 @@ module AMQP
       def run_em_loop
         begin
           EM.run do
-            run_em_hooks :before
+            run_em_hooks :em_before
 
             @spec_exception = nil
             timeout(@opts[:spec_timeout]) if @opts[:spec_timeout]
@@ -70,7 +70,7 @@ module AMQP
           end
         rescue Exception => @spec_exception
 #          p "Outside loop, caught #{@spec_exception}"
-          run_em_hooks :after # Event loop broken, but we still need to run em_after hooks
+          run_em_hooks :em_after # Event loop broken, but we still need to run em_after hooks
         ensure
           finish_example
         end
@@ -79,7 +79,7 @@ module AMQP
       # Stops EM event loop. It is called from #done
       #
       def finish_em_loop
-        run_em_hooks :after
+        run_em_hooks :em_after
         EM.stop_event_loop if EM.reactor_running?
       end
 
@@ -122,7 +122,10 @@ module AMQP
       # Run @block inside the AMQP.start loop
       def run
         run_em_loop do
-          AMQP.start_connection @opts, &@block
+          AMQP.start_connection @opts, do
+            run_em_hooks :amqp_before
+            @block.call
+          end
         end
       end
 
@@ -133,22 +136,18 @@ module AMQP
         super(delay) do
           yield if block_given?
           EM.next_tick do
+            run_em_hooks :amqp_after
             if AMQP.conn and not AMQP.closing
               AMQP.stop_connection do
+                AMQP.cleanup_state
                 finish_em_loop
               end
             else
+              AMQP.cleanup_state
               finish_em_loop
             end
           end
         end
-      end
-
-      # Called from run_event_loop when event loop is finished, before any exceptions
-      # is raised or example returns. We ensure AMQP state cleanup here.
-      def finish_example
-        AMQP.cleanup_state
-        super
       end
 
     end # class AMQPExample < EventedExample
