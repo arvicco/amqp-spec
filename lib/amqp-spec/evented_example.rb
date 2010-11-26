@@ -150,6 +150,13 @@ module AMQP
         end
       end
 
+      # Called from run_event_loop when event loop is finished, before any exceptions
+      # is raised or example returns. We ensure AMQP state cleanup here.
+      def finish_example
+        AMQP.cleanup_state
+        super
+      end
+
     end # class AMQPExample < EventedExample
   end # module SpecHelper
 end # module AMQP
