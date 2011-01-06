@@ -15,7 +15,7 @@
 defaults: &defaults
   user: guest
   pass: guest
-  host: 10.211.55.2
+  host: localhost
   vhost: /
 
 development:
