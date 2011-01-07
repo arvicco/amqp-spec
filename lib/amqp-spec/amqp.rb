@@ -1,5 +1,3 @@
-require 'mq'
-
 # Monkey patching some methods into AMQP to make it more testable
 module AMQP
 

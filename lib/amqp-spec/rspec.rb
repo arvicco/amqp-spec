@@ -16,8 +16,8 @@ require 'amqp-spec/evented_example'
 # will run inside AMQP.start loop without the need to explicitly call 'amqp'. In order to
 # provide options to AMQP loop, default_options({opts}) macro is defined.
 #
-# Including AMQP::EMSpec module into your example group, each example of this group will run
-# inside EM.run loop without the need to explicitly call 'em'.
+# Including AMQP::EMSpec module into your example group, each example of this group will
+# run inside EM.run loop without the need to explicitly call 'em'.
 #
 # In order to stop AMQP/EM loop, you should call 'done' AFTER you are sure that your
 # example is finished and your expectations executed. For example if you are using

@@ -8,6 +8,8 @@ require 'yaml'
 require 'amqp-spec/rspec'
 require 'shared_examples'
 
+require 'mq'
+
 def rspec2?
   defined?(RSpec)
 end
