@@ -1,5 +1,5 @@
-require_relative 'amqp'
-require_relative 'evented_example'
+require 'amqp-spec/amqp'
+require 'amqp-spec/evented_example'
 
 # You can include one of the following modules into your example groups:
 # AMQP::SpecHelper,
@@ -207,4 +207,10 @@ module AMQP
       end
     end
   end
+end
+
+# Monkey patching EM to provide drop-in experience for legacy EM-Spec based examples
+module EventMachine
+  Spec = AMQP::EMSpec
+  SpecHelper = AMQP::SpecHelper
 end

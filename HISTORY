@@ -73,3 +73,7 @@
 == 0.3.4 / 2010-11-26
 
 * amqp_before/after hooks added
+
+== 0.3.5 / 2011-01-07
+
+* Drop-in support for legacy em-spec based examples added
