@@ -81,3 +81,7 @@
 == 0.3.6 / 2011-01-07
 
 * Changed Gemfile to avoid circular dependency on AMQP
+
+== 0.3.7 / 2011-01-07
+
+* Changed Gemspec to avoid circular dependency on AMQP
