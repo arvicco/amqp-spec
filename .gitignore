@@ -15,8 +15,14 @@ tmtags
 
 ## PROJECT::GENERAL
 coverage
+config
 rdoc
 pkg
+log
+.idea
+.rvmrc
+.bundle
+Gemfile.lock
 
 ## PROJECT::SPECIFIC
 spec/amqp.yml
